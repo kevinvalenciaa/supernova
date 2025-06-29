@@ -31,11 +31,6 @@ export default function LandingPage() {
     return () => observer.disconnect()
   }, [])
 
-  const handleClick = (action: string) => {
-    console.log(`Clicked: ${action}`)
-    alert(`Action: ${action}`)
-  }
-
   return (
     <div className="min-h-screen bg-white text-black overflow-x-hidden">
       {/* Header */}
@@ -86,7 +81,7 @@ export default function LandingPage() {
                   start creating <ArrowRight className="ml-2 w-4 h-4" />
                 </button>
                 <button 
-                  onClick={() => handleClick('Watch Demo')}
+                  onClick={() => window.open('https://www.youtube.com/watch?v=kPx-YxHjzRY', '_blank')}
                   className="px-6 py-2 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-base font-medium transition-all duration-300 hover:scale-105 flex items-center justify-center"
                 >
                   <Play className="mr-2 w-4 h-4" />
