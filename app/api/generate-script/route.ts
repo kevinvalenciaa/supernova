@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
-
 // Timeout wrapper for operations
 const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
   return Promise.race([
@@ -87,6 +83,11 @@ export async function POST(req: NextRequest) {
     let bRollScript = ''
     let personalizationLevel = 'basic'
     let usePersonalizedContent = false
+
+    // Initialize OpenAI client inside the function
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
 
     // Check if we have pre-generated personalized content (from LangChain agents)
     if (personalData && personalData.personalizedContent && !regenerate) {

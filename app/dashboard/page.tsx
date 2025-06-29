@@ -64,22 +64,11 @@ type Tab = "create" | "library" | "settings"
 type GenerationStep = "input" | "analysis" | "storyboard" | "video"
 
 // HeyGen API Configuration
-// Using environment variable for security
-const HEYGEN_API_KEY = process.env.HEYGEN_API_KEY || ''
-
+// API keys are handled server-side for security
 const HEYGEN_BASE_URL = 'https://api.heygen.com'
 
 // Pexels API Configuration
-const PEXELS_API_KEY = process.env.PEXELS_API_KEY || ''
 const PEXELS_BASE_URL = 'https://api.pexels.com/videos'
-
-
-// Helper function to get the API key
-const getApiKey = () => {
-  // Use the API token directly as provided by HeyGen
-  return HEYGEN_API_KEY
-}
-
 
 // HeyGen API Functions
 const heygenAPI = {
@@ -129,67 +118,43 @@ const heygenAPI = {
     return spokenLines.join(' ').replace(/\s+/g, ' ').trim()
   },
 
-  // Test API key validity
+  // Test API key validity via server-side route
   async testApiKey() {
     try {
-      // Get the API key (HeyGen token format)
-      const apiKey = getApiKey()
-      console.log('Testing HeyGen API token (first 10 chars):', apiKey.substring(0, 10) + '...')
-      console.log('API token length:', apiKey.length)
-      console.log('API token format check:', {
-        isBase64Format: /^[A-Za-z0-9+/]*={0,2}$/.test(apiKey),
-        length: apiKey.length,
-        endsWithEquals: apiKey.endsWith('=') || apiKey.endsWith('==')
-      })
-      
-      const response = await fetch(`${HEYGEN_BASE_URL}/v2/avatars?limit=1`, {
+      const response = await fetch('/api/heygen/test-key', {
+        method: 'POST',
         headers: {
-          'Accept': 'application/json',
-          'X-Api-Key': apiKey,
+          'Content-Type': 'application/json',
         },
       })
       
-      console.log('API Response status:', response.status)
-      console.log('API Response headers:', Object.fromEntries(response.headers.entries()))
-      
-      if (response.status === 401) {
-        throw new Error('Invalid API token - Check if your HeyGen API token is correct and has proper permissions')
-      }
-      
-      if (response.status === 403) {
-        throw new Error('API token forbidden - Check if your HeyGen plan includes avatar access')
-      }
-      
       if (!response.ok) {
-        const errorText = await response.text()
-        console.log('API Error response:', errorText)
-        throw new Error(`API request failed with status ${response.status}: ${errorText}`)
+        throw new Error(`API test failed with status ${response.status}`)
       }
       
       const data = await response.json()
-      console.log('API Response data:', data)
-      return response.ok && (data.error === null || data.error === undefined)
+      return data.success
     } catch (error) {
-      console.error('API token test failed:', error)
+      console.error('API key test failed:', error)
       return false
     }
   },
 
   async getAvatars() {
     try {
-      const response = await fetch(`${HEYGEN_BASE_URL}/v2/avatars`, {
+      const response = await fetch('/api/heygen/avatars', {
+        method: 'GET',
         headers: {
-          'Accept': 'application/json',
-          'X-Api-Key': getApiKey(),
+          'Content-Type': 'application/json',
         },
       })
       
-      if (response.status === 401) {
-        throw new Error('Unauthorized: Invalid API key')
+      if (!response.ok) {
+        throw new Error('Failed to fetch avatars')
       }
       
       const data = await response.json()
-      return data.data?.avatars || []
+      return data.avatars || []
     } catch (error) {
       console.error('Error fetching avatars:', error)
       return []
@@ -198,19 +163,19 @@ const heygenAPI = {
 
   async getVoices() {
     try {
-      const response = await fetch(`${HEYGEN_BASE_URL}/v2/voices`, {
+      const response = await fetch('/api/heygen/voices', {
+        method: 'GET',
         headers: {
-          'Accept': 'application/json',
-          'X-Api-Key': getApiKey(),
+          'Content-Type': 'application/json',
         },
       })
       
-      if (response.status === 401) {
-        throw new Error('Unauthorized: Invalid API key')
+      if (!response.ok) {
+        throw new Error('Failed to fetch voices')
       }
       
       const data = await response.json()
-      return data.data?.voices || []
+      return data.voices || []
     } catch (error) {
       console.error('Error fetching voices:', error)
       return []
@@ -219,24 +184,20 @@ const heygenAPI = {
 
   async uploadAsset(file: File) {
     try {
-      const response = await fetch('https://upload.heygen.com/v1/asset', {
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      const response = await fetch('/api/heygen/upload-asset', {
         method: 'POST',
-        headers: {
-          'Content-Type': file.type,
-          'X-Api-Key': getApiKey(),
-        },
-        body: file
+        body: formData
       })
       
-      const data = await response.json()
-      
-      // Check for HeyGen's success response format
-      if (data.code !== 100) {
-        throw new Error(data.message || data.msg || 'Upload failed')
+      if (!response.ok) {
+        throw new Error('Upload failed')
       }
       
-      // Return the asset data
-      return data.data
+      const data = await response.json()
+      return data.asset
     } catch (error) {
       console.error('Error uploading asset:', error)
       throw error
@@ -249,24 +210,23 @@ const heygenAPI = {
     // For now, we'll simulate the process and provide instructions
     try {
       // This would be the actual API call when available:
-      // const response = await fetch(`${HEYGEN_BASE_URL}/v2/avatars/instant`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'X-Api-Key': atob(HEYGEN_API_KEY),
-      //   },
-      //   body: JSON.stringify({
-      //     asset_id: assetId,
-      //     avatar_name: avatarName
-      //   })
-      // })
+      const response = await fetch('/api/heygen/create-avatar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          assetId,
+          avatarName
+        })
+      })
       
-      // For now, return a simulated response
-      return {
-        avatar_creation_id: `sim_${Date.now()}`,
-        status: 'processing',
-        estimated_time: '10-15 minutes'
+      if (!response.ok) {
+        throw new Error('Avatar creation failed')
       }
+      
+      const data = await response.json()
+      return data
     } catch (error) {
       console.error('Error creating instant avatar:', error)
       throw error
@@ -275,67 +235,34 @@ const heygenAPI = {
 
   async generateVideo(avatarId: string, voiceId: string, script: string, brollFootage: any[] = []) {
     try {
-      // Clean the script to remove timestamps and technical directions
-      const cleanScript = heygenAPI.cleanScriptForSpeech(script)
+      const cleanScript = this.cleanScriptForSpeech(script)
+      console.log('Cleaned script for video generation:', cleanScript)
       
-      console.log('Original script:', script)
-      console.log('Cleaned script for speech:', cleanScript)
-      console.log('B-roll footage available:', brollFootage.length)
-      
-      // For now, generate a standard avatar video since HeyGen may not support video_background
-      // The B-roll footage is logged for future integration when HeyGen supports it
-      const response = await fetch(`${HEYGEN_BASE_URL}/v2/video/generate`, {
+      // Use server-side API route for video generation
+      const response = await fetch('/api/generate-video', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Api-Key': getApiKey(),
         },
         body: JSON.stringify({
-          video_inputs: [
-            {
-              character: {
-                type: "avatar",
-                avatar_id: avatarId,
-                avatar_style: "normal"
-              },
-              voice: {
-                type: "text",
-                input_text: cleanScript,
-                voice_id: voiceId,
-                speed: 1.0
-              }
-            }
-          ],
-          dimension: {
-            width: 720,
-            height: 1280 // Vertical format for TikTok/Instagram
-          },
-          caption: true, // Enable captions
-          caption_templates: {
-            font_name: "Poppins",
-            font_size: 20,
-            font_color: "#FFFFFF",
-            font_color_highlight: "#FFD700", // Gold highlight for emphasis
-            background_color: "rgba(0,0,0,0.7)", // Semi-transparent black background
-            background_style: "rounded", // Rounded background for captions
-            position: "bottom", // Position captions at bottom
-            line_count: 2, // Maximum 2 lines per caption
-            word_count: 8 // Maximum 8 words per line
-          }
+          avatarId,
+          voiceId,
+          script: cleanScript,
+          brollFootage
         })
       })
       
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('HeyGen API Error:', errorText)
-        throw new Error(`HeyGen API Error: ${response.status} - ${errorText}`)
+        console.error('Video generation API Error:', errorText)
+        throw new Error(`Video generation failed: ${response.status} - ${errorText}`)
       }
       
       const data = await response.json()
       if (data.error) {
         throw new Error(data.error)
       }
-      return data.data?.video_id
+      return data.video_id
     } catch (error) {
       console.error('Error generating video:', error)
       throw error
@@ -344,14 +271,19 @@ const heygenAPI = {
 
   async getVideoStatus(videoId: string) {
     try {
-      const response = await fetch(`${HEYGEN_BASE_URL}/v1/video_status.get?video_id=${videoId}`, {
+      const response = await fetch(`/api/heygen/video-status?videoId=${videoId}`, {
+        method: 'GET',
         headers: {
-          'Accept': 'application/json',
-          'X-Api-Key': getApiKey(),
+          'Content-Type': 'application/json',
         },
       })
+      
+      if (!response.ok) {
+        throw new Error('Failed to get video status')
+      }
+      
       const data = await response.json()
-      return data.data
+      return data.status
     } catch (error) {
       console.error('Error checking video status:', error)
       throw error
@@ -428,10 +360,16 @@ const heygenAPI = {
 const pexelsAPI = {
   async searchVideos(query: string, perPage: number = 5) {
     try {
-      const response = await fetch(`${PEXELS_BASE_URL}/search?query=${encodeURIComponent(query)}&per_page=${perPage}&orientation=landscape`, {
+      const response = await fetch('/api/pexels/search', {
+        method: 'POST',
         headers: {
-          'Authorization': PEXELS_API_KEY
-        }
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          perPage,
+          orientation: 'landscape'
+        })
       })
       
       if (!response.ok) {

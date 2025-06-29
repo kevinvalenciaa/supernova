@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { PersonalizationAgent } from '@/lib/langchain-agents'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
-
 export async function POST(req: NextRequest) {
   try {
     const { idea, personalData, analysis } = await req.json()
@@ -49,6 +45,11 @@ export async function POST(req: NextRequest) {
 
     // Fallback to standard OpenAI generation if no personalization available
     if (!aRollScript && !bRollScript) {
+      // Initialize OpenAI client inside the function
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      })
+
       const prompt = `
 Create A-roll and B-roll scripts for: "${idea}"
 
