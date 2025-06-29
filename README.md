@@ -346,9 +346,8 @@ This project demonstrates:
 
 ## 📞 Connect
 
-- **Portfolio**: [kevinvalencia.dev](https://kevinvalencia.dev)
-- **LinkedIn**: [linkedin.com/in/kevinvalencia](https://linkedin.com/in/kevinvalencia)
-- **Email**: kevin@supernova-ai.com
+- **Portfolio**: [https://kvalencia.vercel.app/](https://kvalencia.vercel.app/)
+- **LinkedIn**: [https://www.linkedin.com/in/kevin-valenciaa/](https://www.linkedin.com/in/kevin-valenciaa/)
 
 ---
 
@@ -356,6 +355,6 @@ This project demonstrates:
 
 **⭐ Star this repository if you found it helpful!**
 
-Made with ❤️ by [Kevin Valencia](https://github.com/kevinvalencia)
+Made with ❤️ by [Kevin Valencia](https://github.com/kevinvalenciaa)
 
 </div> 
