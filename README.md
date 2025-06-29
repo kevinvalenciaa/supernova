@@ -9,7 +9,7 @@
 
 > Transform from a single creator into a content powerhouse. Generate professional videos, scripts, and B-roll using your own AI digital twin.
 
-[🎬 **Watch Demo**](https://www.youtube.com/watch?v=kPx-YxHjzRY) • [🚀 **Live Demo**]() • [📖 **Documentation**](#documentation)
+[🎬 **Watch Demo**](https://www.youtube.com/watch?v=kPx-YxHjzRY) • [🚀 **Live Demo**](https://supernova-mz6f9ot0k-kevinvalenciaas-projects.vercel.app/) • [📖 **Documentation**](#documentation)
 
 ---
 
