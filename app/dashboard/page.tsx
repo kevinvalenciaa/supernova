@@ -64,13 +64,13 @@ type Tab = "create" | "library" | "settings"
 type GenerationStep = "input" | "analysis" | "storyboard" | "video"
 
 // HeyGen API Configuration
-// Using your actual HeyGen API token as provided by HeyGen
-const HEYGEN_API_KEY = 'NDkzMWIyMzUxMzY1NDZhZWE0ZGFmZmU5ZWJlYmQ4ZTMtMTc1MDUyNDk5Mg==' // Your actual HeyGen API token
+// Using environment variable for security
+const HEYGEN_API_KEY = process.env.HEYGEN_API_KEY || ''
 
 const HEYGEN_BASE_URL = 'https://api.heygen.com'
 
 // Pexels API Configuration
-const PEXELS_API_KEY = 'hib9VuJK7n90ypzjwcD2Y0pCqeOwUALpICzvld0CZKdfXYB8p0xLPPqb'
+const PEXELS_API_KEY = process.env.PEXELS_API_KEY || ''
 const PEXELS_BASE_URL = 'https://api.pexels.com/videos'
 
 
