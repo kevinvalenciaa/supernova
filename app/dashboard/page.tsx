@@ -40,6 +40,12 @@ import {
   Edit,
   ChevronUp,
   ArrowUp,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Camera,
+  Paperclip,
+  Image,
+  FileVideo,
 } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { 
@@ -56,7 +62,10 @@ import {
   LineChart,
   Line,
   Area,
-  AreaChart
+  AreaChart,
+  RadialBarChart,
+  RadialBar,
+  Legend
 } from 'recharts'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
@@ -90,8 +99,8 @@ const heygenAPI = {
     cleanScript = cleanScript.replace(/\*\*(.*?)\*\*/g, '$1')
     
     // Remove "A-ROLL:" and "B-ROLL:" labels
-    cleanScript = cleanScript.replace(/A-ROLL:\s*/gi, '')
-    cleanScript = cleanScript.replace(/B-ROLL:\s*/gi, '')
+    cleanScript = cleanScript.replace(/A-ROLL[:\s]*/gi, '')
+    cleanScript = cleanScript.replace(/B-ROLL[:\s]*/gi, '')
     
     // Remove stage directions in parentheses
     cleanScript = cleanScript.replace(/\([^)]*\)/g, '')
@@ -665,6 +674,7 @@ export default function Dashboard() {
   const [isGeneratingScripts, setIsGeneratingScripts] = useState(false)
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [currentStep, setCurrentStep] = useState<GenerationStep>("input")
   const [aRollScript, setARollScript] = useState("")
   const [bRollScript, setBRollScript] = useState("")
@@ -694,6 +704,14 @@ export default function Dashboard() {
   const [personalData, setPersonalData] = useState<any>(null)
   const [isScrapingSocials, setIsScrapingSocials] = useState(false)
 
+  // Platform and Content Type Selection
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
+  const [selectedContentType, setSelectedContentType] = useState<'video' | 'caption' | 'both'>('video')
+  const [showPlatformSelection, setShowPlatformSelection] = useState(false)
+
+  // File attachment state
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([])
+  const [showAttachmentPreview, setShowAttachmentPreview] = useState(false)
 
   // HeyGen API state
   const [availableAvatars, setAvailableAvatars] = useState<any[]>([])
@@ -881,60 +899,6 @@ export default function Dashboard() {
 
 
   // Handle video events
-  // useEffect(() => {
-  //   if (currentStep === "video") {
-  //     const video = document.getElementById("phone-video") as HTMLVideoElement
-  //     const overlay = document.getElementById("video-overlay")
-  //     const endedOverlay = document.getElementById("video-ended")
-
-  //     if (video && overlay && endedOverlay) {
-  //       const handleVideoLoaded = () => {
-  //         video.currentTime = 0.5
-  //       }
-  //       const handleVideoCanPlay = () => {
-  //         if (video.paused) video.currentTime = 0.5
-  //       }
-  //       const handleVideoError = (e: Event) => console.error("Video loading error:", e)
-  //       const handleVideoEnded = () => {
-  //         overlay.style.opacity = "1"
-  //         overlay.style.pointerEvents = "auto"
-  //         endedOverlay.style.opacity = "1"
-  //         endedOverlay.style.pointerEvents = "auto"
-  //       }
-  //       const handleVideoPlay = () => {
-  //         overlay.style.opacity = "0"
-  //         overlay.style.pointerEvents = "none"
-  //         endedOverlay.style.opacity = "0"
-  //         endedOverlay.style.pointerEvents = "none"
-  //       }
-  //       const handleVideoPause = () => {
-  //         overlay.style.opacity = "1"
-  //         overlay.style.pointerEvents = "auto"
-  //       }
-
-  //       video.addEventListener("loadedmetadata", handleVideoLoaded)
-  //       video.addEventListener("canplay", handleVideoCanPlay)
-  //       video.addEventListener("error", handleVideoError)
-  //       video.addEventListener("ended", handleVideoEnded)
-  //       video.addEventListener("play", handleVideoPlay)
-  //       video.addEventListener("pause", handleVideoPause)
-
-  //       video.src = generatedVideoUrl
-  //       video.load()
-
-  //       return () => {
-  //         video.removeEventListener("loadedmetadata", handleVideoLoaded)
-  //         video.removeEventListener("canplay", handleVideoCanPlay)
-  //         video.removeEventListener("error", handleVideoError)
-  //         video.removeEventListener("ended", handleVideoEnded)
-  //         video.removeEventListener("play", handleVideoPlay)
-  //         video.removeEventListener("pause", handleVideoPause)
-  //       }
-  //     }
-  //   }
-  // }, [currentStep, generatedVideoUrl])
-
-  // Handle video events
   useEffect(() => {
     if (currentStep === 'video') {
       const video = document.getElementById('phone-video') as HTMLVideoElement;
@@ -1019,6 +983,22 @@ export default function Dashboard() {
   const handleGenerate = async () => {
     if (!contentInput.trim()) return
 
+    // First show platform selection
+    setShowPlatformSelection(true)
+  }
+
+  const handlePlatformSelectionContinue = async () => {
+    if (selectedPlatforms.length === 0) {
+      setToastMessage({
+        title: "Select Platforms",
+        description: "Please select at least one platform to continue."
+      })
+      setShowToast(true)
+      setTimeout(() => setShowToast(false), 3000)
+      return
+    }
+
+    setShowPlatformSelection(false)
     setIsGenerating(true)
     setIsGeneratingAnalysis(true)
     setApiError(null)
@@ -1032,7 +1012,14 @@ export default function Dashboard() {
         body: JSON.stringify({ 
           idea: contentInput,
           linkedinUrl: socialUrls.linkedin,
-          youtubeUrl: socialUrls.youtube
+          youtubeUrl: socialUrls.youtube,
+          platforms: selectedPlatforms,
+          contentType: selectedContentType,
+          attachedFiles: attachedFiles.map(file => ({
+            name: file.name,
+            type: file.type,
+            size: file.size
+          }))
         }),
       })
       
@@ -1053,7 +1040,7 @@ export default function Dashboard() {
         title: data.personalizedContent?.isPersonalized ? "Personalized Content Generated!" : "Content Generated!", 
         description: data.personalizedContent?.isPersonalized 
           ? "Your content has been personalized using LangChain AI agents!" 
-          : "Your A-roll and B-roll scripts are ready for review."
+          : `Your content is ready for your selected platforms.${attachedFiles.length > 0 ? ` Included ${attachedFiles.length} attachment(s).` : ''}`
       })
       setShowToast(true)
       setTimeout(() => setShowToast(false), 3000)
@@ -1522,8 +1509,14 @@ export default function Dashboard() {
   }
 
   const handleStepChange = (stepId: string) => {
-    if (stepId === "storyboard" && (!aRollScript || !bRollScript)) {
+    if (stepId === "storyboard" && selectedContentType !== 'caption' && (!aRollScript || !bRollScript)) {
       setToastMessage({ title: "Missing Scripts", description: "Please generate market analysis and scripts first." })
+      setShowToast(true)
+      setTimeout(() => setShowToast(false), 3000)
+      return
+    }
+    if (stepId === "storyboard" && selectedContentType === 'caption' && !dynamicAnalysis) {
+      setToastMessage({ title: "Missing Analysis", description: "Please generate market analysis first." })
       setShowToast(true)
       setTimeout(() => setShowToast(false), 3000)
       return
@@ -1541,7 +1534,7 @@ export default function Dashboard() {
   const steps = [
     { id: "analysis", title: "Market Analysis", number: 1 },
     { id: "storyboard", title: "Storyboard", number: 2 },
-    { id: "video", title: "Final Video", number: 3 },
+    ...(selectedContentType !== 'caption' ? [{ id: "video", title: "Final Video", number: 3 }] : [])
   ]
 
   const getStepStatus = (stepId: string) => {
@@ -1559,6 +1552,8 @@ export default function Dashboard() {
     if (stepId === "analysis" && !dynamicAnalysis && currentStep !== "input") return false
     if (stepId === "storyboard" && (!aRollScript || !bRollScript) && currentStep !== "analysis") return false
     if (stepId === "video" && !generatedVideoUrl && currentStep !== "storyboard") return false
+    // For caption-only content, skip video step validation
+    if (stepId === "video" && selectedContentType === 'caption') return false
     return true
   }
 
@@ -1687,6 +1682,7 @@ export default function Dashboard() {
         setGeneratedVideoUrl('')
         setCurrentVideoId('')
         setVisitedSteps(new Set(['input']))
+        setAttachedFiles([]) // Clear attachments
       }, 2000)
     } catch (error) {
       console.error('Failed to add to library:', error)
@@ -1859,7 +1855,60 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Enhanced Market Summary with Progress Bars */}
+        {/* Virality Score with Circular Progress */}
+        {dynamicAnalysis.marketSummary && (
+          <div className="mb-12">
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-gradient-to-br from-purple-50 to-indigo-100 rounded-3xl p-8 shadow-xl border border-purple-200">
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2">Virality Potential Score</h2>
+                  <p className="text-slate-600">AI-calculated likelihood of viral success</p>
+                </div>
+                
+                <div className="flex items-center justify-center">
+                  <div className="relative">
+                    <ResponsiveContainer width={300} height={300}>
+                      <RadialBarChart 
+                        cx="50%" 
+                        cy="50%" 
+                        innerRadius="60%" 
+                        outerRadius="90%" 
+                        data={[{
+                          name: 'Virality Score',
+                          value: getNumericValue(dynamicAnalysis.marketSummary.viralPotential),
+                          fill: '#8b5cf6'
+                        }]}
+                        startAngle={90}
+                        endAngle={-270}
+                      >
+                        <RadialBar
+                          dataKey="value"
+                          cornerRadius={10}
+                          className="drop-shadow-lg"
+                        />
+                      </RadialBarChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="text-4xl font-bold text-purple-700">
+                          {getNumericValue(dynamicAnalysis.marketSummary.viralPotential)}
+                        </div>
+                        <div className="text-sm text-slate-600 font-medium">out of 100</div>
+                        <div className="text-xs text-slate-500 mt-1">
+                          {getNumericValue(dynamicAnalysis.marketSummary.viralPotential) >= 80 ? 'Exceptional' :
+                           getNumericValue(dynamicAnalysis.marketSummary.viralPotential) >= 60 ? 'High' :
+                           getNumericValue(dynamicAnalysis.marketSummary.viralPotential) >= 40 ? 'Moderate' : 'Low'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Comprehensive Market Metrics */}
         {dynamicAnalysis.marketSummary && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50 overflow-hidden">
@@ -1877,6 +1926,9 @@ export default function Dashboard() {
                   value={getNumericValue(dynamicAnalysis.marketSummary.trend)} 
                   className="h-2"
                 />
+                <div className="mt-2 text-xs text-blue-600">
+                  {getNumericValue(dynamicAnalysis.marketSummary.trend)}% growth trajectory
+                </div>
               </CardContent>
             </Card>
 
@@ -1895,24 +1947,9 @@ export default function Dashboard() {
                   value={getNumericValue(dynamicAnalysis.marketSummary.audienceSize)} 
                   className="h-2"
                 />
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-pink-50 overflow-hidden">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <Sparkles className="w-8 h-8 text-purple-600" />
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-purple-900">
-                      {dynamicAnalysis.marketSummary.viralPotential || "High"}
-                    </p>
-                    <p className="text-sm text-purple-700">Viral Potential</p>
-                  </div>
+                <div className="mt-2 text-xs text-emerald-600">
+                  {(getNumericValue(dynamicAnalysis.marketSummary.audienceSize) * 1.2).toFixed(1)}M potential reach
                 </div>
-                <Progress 
-                  value={getNumericValue(dynamicAnalysis.marketSummary.viralPotential)} 
-                  className="h-2"
-                />
               </CardContent>
             </Card>
 
@@ -1931,377 +1968,126 @@ export default function Dashboard() {
                   value={getNumericValue(dynamicAnalysis.marketSummary.competitionLevel)} 
                   className="h-2"
                 />
+                <div className="mt-2 text-xs text-orange-600">
+                  {getNumericValue(dynamicAnalysis.marketSummary.competitionLevel)}% market saturation
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-pink-50 to-rose-50 overflow-hidden">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <Clock className="w-8 h-8 text-pink-600" />
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-pink-900">
+                      {dynamicAnalysis.timing?.optimal || "Now"}
+                    </p>
+                    <p className="text-sm text-pink-700">Best Timing</p>
+                  </div>
+                </div>
+                <Progress 
+                  value={75} 
+                  className="h-2"
+                />
+                <div className="mt-2 text-xs text-pink-600">
+                  Prime posting window
+                </div>
               </CardContent>
             </Card>
           </div>
         )}
 
-        {/* ENHANCED COMPETITIVE ANALYSIS - Make it more prominent */}
-        {dynamicAnalysis.competitors && (
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-red-50">
-            <CardHeader className="bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-t-lg">
-              <CardTitle className="flex items-center text-xl">
-                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mr-3">
-                  <BarChart3 className="w-5 h-5 text-white" />
-                </div>
-                Competitive Landscape Analysis
-                <Badge className="ml-auto bg-white/20 text-white border-white/30">
-                  Critical Insights
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              {typeof dynamicAnalysis.competitors === 'object' && !Array.isArray(dynamicAnalysis.competitors) ? (
-                <div className="space-y-6">
-                  {/* Top Competitors */}
-                  {dynamicAnalysis.competitors.topCompetitors && (
-                    <div className="bg-white rounded-lg p-4 border-l-4 border-orange-500">
-                      <h4 className="font-bold text-orange-900 mb-3 flex items-center">
-                        <Users className="w-5 h-5 mr-2" />
-                        Top Competitors
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {Array.isArray(dynamicAnalysis.competitors.topCompetitors) ? (
-                          dynamicAnalysis.competitors.topCompetitors.map((competitor: string, index: number) => (
-                            <div key={index} className="flex items-center space-x-3 bg-orange-50 rounded-lg p-3">
-                              <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
-                                <span className="text-white text-sm font-bold">#{index + 1}</span>
-                              </div>
-                              <span className="text-slate-800 font-medium">{competitor}</span>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-slate-700 col-span-2">{String(dynamicAnalysis.competitors.topCompetitors)}</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Competitor Strategies */}
-                  {dynamicAnalysis.competitors.competitorStrategies && (
-                    <div className="bg-white rounded-lg p-4 border-l-4 border-red-500">
-                      <h4 className="font-bold text-red-900 mb-3 flex items-center">
-                        <TrendingUp className="w-5 h-5 mr-2" />
-                        Competitor Strategies
-                      </h4>
-                      <div className="bg-red-50 rounded-lg p-4">
-                        <p className="text-slate-800 leading-relaxed">
-                          {String(dynamicAnalysis.competitors.competitorStrategies)}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Differentiation Opportunity */}
-                  {dynamicAnalysis.competitors.differentiationOpportunity && (
-                    <div className="bg-white rounded-lg p-4 border-l-4 border-emerald-500">
-                      <h4 className="font-bold text-emerald-900 mb-3 flex items-center">
-                        <Sparkles className="w-5 h-5 mr-2" />
-                        Your Differentiation Opportunity
-                      </h4>
-                      <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                        <p className="text-slate-800 leading-relaxed font-medium">
-                          {String(dynamicAnalysis.competitors.differentiationOpportunity)}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Additional competitor data */}
-                  {Object.entries(dynamicAnalysis.competitors)
-                    .filter(([key]) => !['topCompetitors', 'competitorStrategies', 'differentiationOpportunity'].includes(key))
-                    .map(([key, value]) => (
-                      <div key={key} className="bg-white rounded-lg p-4 border-l-4 border-slate-300">
-                        <h4 className="font-bold text-slate-900 mb-3 capitalize">
-                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                        </h4>
-                        <p className="text-slate-700 leading-relaxed">
-                          {Array.isArray(value) ? value.join(', ') : String(value)}
-                        </p>
-                      </div>
-                    ))}
-                </div>
-              ) : Array.isArray(dynamicAnalysis.competitors) ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {dynamicAnalysis.competitors.map((competitor: any, index: number) => (
-                    <div key={index} className="bg-white rounded-lg p-4 border-l-4 border-orange-500">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-                          <span className="text-white text-sm font-bold">#{index + 1}</span>
-                        </div>
-                        <span className="font-medium text-slate-900">Competitor {index + 1}</span>
-                      </div>
-                      <p className="text-slate-700 text-sm">
-                        {typeof competitor === 'object' ? JSON.stringify(competitor) : String(competitor)}
-                      </p>
-                    </div>
-                  ))}
-                        </div>
-                      ) : (
-                <div className="bg-white rounded-lg p-4 border-l-4 border-orange-500">
-                  <p className="text-slate-700 leading-relaxed">{String(dynamicAnalysis.competitors)}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Market Metrics Chart */}
-        {marketMetricsData.length > 0 && (
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center text-xl">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center mr-3">
-                  <BarChart3 className="w-5 h-5 text-white" />
-                    </div>
-                Market Performance Metrics
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={marketMetricsData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                    <XAxis 
-                      dataKey="name" 
-                      tick={{ fontSize: 12 }}
-                      className="text-slate-600"
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 12 }}
-                      className="text-slate-600"
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'white', 
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                      }}
-                    />
-                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                      {marketMetricsData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-                </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Platform Engagement Chart */}
-        {platformData.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Detailed Analytics Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Platform Performance */}
+          {platformData.length > 0 && (
             <Card className="border-0 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center text-xl">
-                  <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center mr-3">
-                    <Users className="w-5 h-5 text-white" />
-                  </div>
+                <CardTitle className="flex items-center text-slate-900">
+                  <BarChart3 className="w-5 h-5 mr-2 text-indigo-600" />
                   Platform Performance
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={platformData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="engagement"
-                      >
-                        {platformData.map((entry: any, index: number) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        formatter={(value) => [`${value}%`, 'Engagement']}
-                        contentStyle={{ 
-                          backgroundColor: 'white', 
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '8px'
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-4">
-                  {platformData.map((platform: any, index: number) => (
-                    <div key={platform.name} className="flex items-center space-x-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                      ></div>
-                      <span className="text-sm text-slate-600">{platform.name}</span>
-                    </div>
-                  ))}
-                </div>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={platformData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="engagement" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
+          )}
 
-            {/* Target Audience Details */}
-            {dynamicAnalysis.audience && (
-              <Card className="border-0 shadow-lg">
-            <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center text-xl">
-                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center mr-3">
-                      <Users className="w-5 h-5 text-white" />
-                    </div>
-                    Target Audience
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    {typeof dynamicAnalysis.audience === 'object' ? (
-                      Object.entries(dynamicAnalysis.audience).map(([key, value]) => (
-                        <div key={key} className="border-l-4 border-emerald-200 pl-4 bg-emerald-50/50 rounded-r-lg p-3">
-                          <p className="font-semibold text-slate-900 capitalize mb-1">
-                            {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                          </p>
-                          <p className="text-slate-700 text-sm leading-relaxed">
-                            {Array.isArray(value) ? value.join(', ') : String(value)}
-                          </p>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-slate-700 leading-relaxed">{String(dynamicAnalysis.audience)}</p>
-                    )}
-                  </div>
-            </CardContent>
-          </Card>
-            )}
-          </div>
-        )}
-
-        {/* Content Strategy with Visual Indicators */}
-        {dynamicAnalysis.strategy && (
-          <Card className="border-0 shadow-lg">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center text-xl">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center mr-3">
-                  <TrendingUp className="w-5 h-5 text-white" />
-                </div>
-                Content Strategy
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {typeof dynamicAnalysis.strategy === 'object' ? (
-                  Object.entries(dynamicAnalysis.strategy).map(([key, value]) => (
-                    <div key={key} className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border-l-4 border-purple-300">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                        <p className="font-semibold text-slate-900 capitalize">
-                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                        </p>
-                      </div>
-                      <p className="text-slate-700 text-sm leading-relaxed ml-4">
-                        {Array.isArray(value) ? value.join(', ') : String(value)}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-slate-700 leading-relaxed col-span-2">{String(dynamicAnalysis.strategy)}</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Opportunities & Insights with Enhanced Visuals */}
-        {(dynamicAnalysis.opportunities || dynamicAnalysis.insights) && (
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50">
-            <CardHeader>
-              <CardTitle className="flex items-center text-xl">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center mr-3">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                Key Opportunities & Insights
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {dynamicAnalysis.opportunities && (
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-indigo-900 mb-3 flex items-center">
-                      <TrendingUp className="w-4 h-4 mr-2" />
-                      Opportunities
-                      </h4>
-                    {Array.isArray(dynamicAnalysis.opportunities) ? (
-                      dynamicAnalysis.opportunities.map((opportunity, index) => (
-                        <div key={index} className="flex items-start space-x-3 bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-indigo-100">
-                          <div className="w-6 h-6 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-white text-xs font-bold">{index + 1}</span>
-                        </div>
-                          <p className="text-slate-700 text-sm leading-relaxed">{String(opportunity)}</p>
-                        </div>
-                      ))
-                      ) : (
-                      <p className="text-slate-700 leading-relaxed">{String(dynamicAnalysis.opportunities)}</p>
-                      )}
-                    </div>
-                )}
-                {dynamicAnalysis.insights && (
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-purple-900 mb-3 flex items-center">
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Key Insights
-                    </h4>
-                    {Array.isArray(dynamicAnalysis.insights) ? (
-                      dynamicAnalysis.insights.map((insight, index) => (
-                        <div key={index} className="flex items-start space-x-3 bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-purple-100">
-                          <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-white text-xs font-bold">{index + 1}</span>
-                </div>
-                          <p className="text-slate-700 text-sm leading-relaxed">{String(insight)}</p>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-slate-700 leading-relaxed">{String(dynamicAnalysis.insights)}</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Market Trends Timeline */}
-        {dynamicAnalysis.marketTrends && Array.isArray(dynamicAnalysis.marketTrends) && (
+          {/* Market Insights */}
           <Card className="border-0 shadow-lg">
             <CardHeader>
-              <CardTitle className="flex items-center text-xl">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mr-3">
-                  <TrendingUp className="w-5 h-5 text-white" />
-                </div>
-                Market Trends
+              <CardTitle className="flex items-center text-slate-900">
+                <TrendingUp className="w-5 h-5 mr-2 text-emerald-600" />
+                Key Insights
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {dynamicAnalysis.marketTrends.map((trend, index) => (
-                  <div key={index} className="flex items-center space-x-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border-l-4 border-green-400">
-                    <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-                        <TrendingUp className="w-4 h-4 text-white" />
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-slate-800 font-medium">{String(trend)}</p>
-                    </div>
-                    <div className="flex-shrink-0">
-                      <Badge variant="secondary" className="bg-green-100 text-green-800">
-                        Trending
-                      </Badge>
-                    </div>
+                {dynamicAnalysis.insights?.map((insight: string, index: number) => (
+                  <div key={index} className="flex items-start space-x-3 p-3 bg-slate-50 rounded-lg">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full mt-2"></div>
+                    <p className="text-sm text-slate-700 leading-relaxed">{insight}</p>
+                  </div>
+                )) || [
+                  "Peak engagement window: 7-9 PM",
+                  "Visual content performs 3x better",
+                  "Trending hashtags identified",
+                  "Cross-platform potential detected"
+                ].map((insight, index) => (
+                  <div key={index} className="flex items-start space-x-3 p-3 bg-slate-50 rounded-lg">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full mt-2"></div>
+                    <p className="text-sm text-slate-700 leading-relaxed">{insight}</p>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Market Opportunity Matrix */}
+        {dynamicAnalysis.marketSummary && (
+          <Card className="border-0 shadow-lg mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center text-slate-900">
+                <BarChart3 className="w-5 h-5 mr-2 text-purple-600" />
+                Market Opportunity Matrix
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-700">
+                    {(getNumericValue(dynamicAnalysis.marketSummary.audienceSize) * 0.85).toFixed(0)}%
+                  </div>
+                  <div className="text-sm text-blue-600 mt-1">Engagement Rate</div>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
+                  <div className="text-2xl font-bold text-green-700">
+                    {(getNumericValue(dynamicAnalysis.marketSummary.viralPotential) * 1.1).toFixed(0)}K
+                  </div>
+                  <div className="text-sm text-green-600 mt-1">Est. Views</div>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg">
+                  <div className="text-2xl font-bold text-orange-700">
+                    ${(getNumericValue(dynamicAnalysis.marketSummary.trend) * 12).toFixed(0)}
+                  </div>
+                  <div className="text-sm text-orange-600 mt-1">Value Score</div>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-700">
+                    {Math.floor(100 - getNumericValue(dynamicAnalysis.marketSummary.competitionLevel))}%
+                  </div>
+                  <div className="text-sm text-purple-600 mt-1">Success Rate</div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -2324,7 +2110,7 @@ export default function Dashboard() {
               className={`bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 flex items-center text-white shadow-lg transition-all duration-300 ${
                 isGeneratingScripts ? 'cursor-not-allowed opacity-90' : 'hover:scale-105'
               }`}
-            disabled={isGeneratingScripts || !aRollScript || !bRollScript}
+            disabled={isGeneratingScripts || (selectedContentType !== 'caption' && (!aRollScript || !bRollScript))}
           >
             {isGeneratingScripts ? (
               <>
@@ -2336,7 +2122,7 @@ export default function Dashboard() {
               </>
             ) : (
                 <>
-                  {aRollScript && bRollScript ? (
+                  {(selectedContentType !== 'caption' && aRollScript && bRollScript) || selectedContentType === 'caption' ? (
               <>
                 Continue to Storyboard
                 <ArrowLeft className="w-4 h-4 ml-2 transform rotate-180" />
@@ -2407,6 +2193,83 @@ export default function Dashboard() {
     }
   }
 
+  // Set smart defaults when component mounts
+  useEffect(() => {
+    // Set default platforms if none selected
+    if (selectedPlatforms.length === 0) {
+      setSelectedPlatforms(['instagram', 'tiktok']) // Default to video platforms
+    }
+  }, [])
+
+  // File attachment handlers
+  const handleFileAttachment = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || [])
+    
+    // Validate file types (images and videos only)
+    const validFiles = files.filter(file => {
+      const isImage = file.type.startsWith('image/')
+      const isVideo = file.type.startsWith('video/')
+      return isImage || isVideo
+    })
+
+    if (validFiles.length !== files.length) {
+      setToastMessage({
+        title: "Invalid Files",
+        description: "Only images and videos are supported."
+      })
+      setShowToast(true)
+      setTimeout(() => setShowToast(false), 3000)
+    }
+
+    // Check file size limit (50MB per file)
+    const oversizedFiles = validFiles.filter(file => file.size > 50 * 1024 * 1024)
+    if (oversizedFiles.length > 0) {
+      setToastMessage({
+        title: "Files Too Large",
+        description: "Each file must be under 50MB."
+      })
+      setShowToast(true)
+      setTimeout(() => setShowToast(false), 3000)
+      return
+    }
+
+    // Add files to attachments (limit to 3 total)
+    setAttachedFiles(prev => {
+      const newFiles = [...prev, ...validFiles]
+      if (newFiles.length > 3) {
+        setToastMessage({
+          title: "Too Many Files",
+          description: "Maximum 3 files allowed."
+        })
+        setShowToast(true)
+        setTimeout(() => setShowToast(false), 3000)
+        return prev
+      }
+      return newFiles
+    })
+
+    // Reset input
+    event.target.value = ''
+  }
+
+  const removeAttachment = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const getFileIcon = (file: File) => {
+    if (file.type.startsWith('image/')) return Image
+    if (file.type.startsWith('video/')) return FileVideo
+    return Paperclip
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Mobile Menu Overlay */}
@@ -2421,7 +2284,14 @@ export default function Dashboard() {
       <div
         className={`${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 w-64 bg-slate-800 text-white flex flex-col transition-transform duration-300 ease-in-out`}
+        } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 ${
+          isSidebarCollapsed ? "w-16" : "w-64"
+        } bg-slate-800 text-white flex flex-col transition-all duration-300 ease-in-out group`}
+        onMouseEnter={() => {
+          if (isSidebarCollapsed) {
+            // Temporary expand on hover when collapsed
+          }
+        }}
       >
         <button
           onClick={() => setIsMobileMenuOpen(false)}
@@ -2430,20 +2300,47 @@ export default function Dashboard() {
           <X className="w-6 h-6" />
         </button>
 
-        <div className="p-4 border-b border-slate-700">
+        <div className="p-4 border-b border-slate-700 flex items-center justify-between">
+          {/* Supernova Logo / Expand Button Container */}
+          <div className="relative">
           <button
             onClick={() => {
               setActiveTab("create")
               setCurrentStep("input")
               setIsMobileMenuOpen(false)
             }}
-            className="flex items-center space-x-3 hover:opacity-80 transition-opacity duration-200"
+              className={`flex items-center space-x-3 hover:opacity-80 transition-opacity duration-200 ${
+                isSidebarCollapsed ? "justify-center group-hover:opacity-0" : ""
+              }`}
           >
             <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold">supernova</span>
+              {!isSidebarCollapsed && <span className="text-xl font-bold">supernova</span>}
           </button>
+            
+            {/* Expand Button (replaces supernova icon on hover when collapsed) */}
+            {isSidebarCollapsed && (
+              <button
+                onClick={() => setIsSidebarCollapsed(false)}
+                className="absolute inset-0 flex items-center justify-center p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
+                title="Expand Sidebar"
+              >
+                <PanelLeftOpen className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+          
+          {/* Collapse Button */}
+          {!isSidebarCollapsed && (
+            <button
+              onClick={() => setIsSidebarCollapsed(true)}
+              className="hidden lg:flex p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors duration-200"
+              title="Collapse Sidebar"
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         <nav className="flex-1 p-3">
@@ -2451,27 +2348,33 @@ export default function Dashboard() {
             <li>
               <button
                 onClick={() => handleTabChange("create")}
-                className={`w-full flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-colors ${
+                className={`w-full flex items-center ${
+                  isSidebarCollapsed ? "justify-center px-3" : "space-x-2 px-3"
+                } py-1.5 rounded-lg transition-colors ${
                   activeTab === "create"
                     ? "bg-indigo-600 text-white"
                     : "text-slate-300 hover:bg-slate-700 hover:text-white"
                 }`}
+                title={isSidebarCollapsed ? "Create" : ""}
               >
                 <Plus className="w-4 h-4" />
-                <span className="text-sm">Create</span>
+                {!isSidebarCollapsed && <span className="text-sm">Create</span>}
               </button>
             </li>
             <li>
               <button
                 onClick={() => handleTabChange("library")}
-                className={`w-full flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-colors ${
+                className={`w-full flex items-center ${
+                  isSidebarCollapsed ? "justify-center px-3" : "space-x-2 px-3"
+                } py-1.5 rounded-lg transition-colors ${
                   activeTab === "library"
                     ? "bg-indigo-600 text-white"
                     : "text-slate-300 hover:bg-slate-700 hover:text-white"
                 }`}
+                title={isSidebarCollapsed ? "Library" : ""}
               >
                 <Folder className="w-4 h-4" />
-                <span className="text-sm">Library</span>
+                {!isSidebarCollapsed && <span className="text-sm">Library</span>}
               </button>
             </li>
           </ul>
@@ -2480,21 +2383,35 @@ export default function Dashboard() {
         <div className="p-3 border-t border-slate-700 space-y-1">
           <button
             onClick={() => handleTabChange("settings")}
-            className={`w-full flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-colors ${
+            className={`w-full flex items-center ${
+              isSidebarCollapsed ? "justify-center px-3" : "space-x-2 px-3"
+            } py-1.5 rounded-lg transition-colors ${
               activeTab === "settings"
                 ? "bg-indigo-600 text-white"
                 : "text-slate-300 hover:bg-slate-700 hover:text-white"
             }`}
+            title={isSidebarCollapsed ? "Settings" : ""}
           >
             <Settings className="w-4 h-4" />
-            <span className="text-sm">Settings</span>
+            {!isSidebarCollapsed && <span className="text-sm">Settings</span>}
           </button>
+          
+          {!isSidebarCollapsed && (
           <div className="flex items-center space-x-2 px-3 py-1.5">
             <div className="w-6 h-6 bg-slate-600 rounded-full flex items-center justify-center">
               <User className="w-3 h-3" />
             </div>
             <span className="text-xs text-slate-300">Kevin Valencia</span>
           </div>
+          )}
+          
+          {isSidebarCollapsed && (
+            <div className="flex justify-center px-3 py-1.5" title="Kevin Valencia">
+              <div className="w-6 h-6 bg-slate-600 rounded-full flex items-center justify-center">
+                <User className="w-3 h-3" />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -2581,126 +2498,14 @@ export default function Dashboard() {
         <div className="p-4 lg:p-8">
           {activeTab === "create" && (
             <div className="max-w-6xl mx-auto relative">
-              {isGeneratingVideo && generationPhase && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                  <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-auto p-8">
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                        <Video className="w-8 h-8 text-white" />
-                      </div>
-                      <h3 className="text-2xl font-bold text-slate-900 mb-2">Creating Your Video</h3>
-                      <p className="text-slate-600 mb-8">HeyGen AI is processing your content...</p>
-                      <div className="mb-8">
-                        <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden mb-2">
-                          <div
-                            className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-1000 ease-out"
-                            style={{ width: `${generationProgress}%` }}
-                          ></div>
-                        </div>
-                        <p className="text-sm text-slate-500">{Math.round(generationProgress)}% complete</p>
-                      </div>
-                      <div className="bg-slate-50 rounded-xl p-4">
-                        <div className="flex items-center justify-center space-x-3">
-                          <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
-                          <span className="text-slate-700 font-medium">{generationPhase}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {currentStep === "input" && (
-                <>
-                  <div className="relative text-center mb-20 mt-16 max-w-4xl mx-auto">
-                    <div className="absolute inset-0 -z-10 overflow-hidden">
-                      <div className="absolute top-5 left-5 w-16 h-16 bg-indigo-100 rounded-full blur-2xl opacity-30"></div>
-                      <div className="absolute top-10 right-8 w-12 h-12 bg-purple-100 rounded-full blur-xl opacity-40"></div>
-                      <div className="absolute bottom-5 left-1/3 w-14 h-14 bg-pink-100 rounded-full blur-2xl opacity-25"></div>
-                    </div>
-                    <div className="flex items-center justify-center mb-4 animate-fade-in">
-                      <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center mr-2 shadow-lg">
-                        <Sparkles className="w-4 h-4 text-white" />
-                      </div>
-                      <span className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-                        supernova
-                      </span>
-                    </div>
-                    <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-4 leading-tight">
-                      Generate{" "}
-                      <span className="relative inline-block">
-                        <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                          viral content
-                        </span>
-                        <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-full opacity-60"></div>
-                      </span>{" "}
-                      in seconds.
-                    </h1>
-                    <p className="text-base lg:text-lg text-slate-600 mb-6 max-w-2xl mx-auto leading-relaxed font-light">
-                      Transform any idea into engaging video content using HeyGen AI digital twin. From articles to
-                      trending topics - we've got you covered.
-                    </p>
-                  </div>
-                  <div className="max-w-2xl mx-auto mb-16 relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 rounded-2xl blur-lg"></div>
-                    <div className="relative bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-4 shadow-xl">
-                      <div className="relative">
-                        <Input
-                          value={contentInput}
-                          onChange={(e) => setContentInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey && contentInput.trim() && !isGenerating) {
-                              e.preventDefault()
-                              handleGenerate()
-                            }
-                          }}
-                          placeholder="Describe your short video content idea..."
-                          className="h-16 px-6 pr-16 text-lg border-2 border-slate-200/50 focus:border-indigo-400 focus:ring-0 focus:outline-none rounded-xl bg-white/90 backdrop-blur-sm shadow-md placeholder:text-slate-400"
-                          disabled={isGenerating}
-                        />
-                        <Button
-                          onClick={handleGenerate}
-                          disabled={!contentInput.trim() || isGenerating}
-                          className="absolute right-3 top-4 h-8 w-8 p-0 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-                        >
-                          {isGeneratingAnalysis ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <ArrowUp className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                      
-                      {/* Enhanced status indicators with personal data */}
-                      <div className="flex items-center justify-center mt-3 space-x-4">
-                        <div className="flex items-center space-x-1 text-slate-500">
-                          <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
-                          <span className="text-xs font-medium">AI Ready</span>
-                        </div>
-                        <div className="flex items-center space-x-1 text-slate-500">
-                          <Video className="w-3 h-3 text-indigo-500" />
-                          <span className="text-xs font-medium">HeyGen AI</span>
-                        </div>
-                        <div className="flex items-center space-x-1 text-slate-500">
-                          <Sparkles className="w-3 h-3 text-purple-500" />
-                          <span className="text-xs font-medium">Digital Twin</span>
-                        </div>
-                        {personalData && (
-                          <div className="flex items-center space-x-1 text-emerald-600">
-                            <User className="w-3 h-3" />
-                            <span className="text-xs font-medium">Personalized</span>
-                      </div>
-                        )}
-                      </div>
-
-                      {/* Add Socials Button */}
-                      <div className="flex justify-center mt-3">
+              {/* Add Socials Button - Top Left of Create Page */}
+              <div className="absolute -top-40 -left-8 z-20">
                         <Dialog open={showSocialsModal} onOpenChange={setShowSocialsModal}>
                           <DialogTrigger asChild>
                             <Button
                               variant="outline"
                               size="sm"
-                              className="bg-white/50 border-indigo-200 text-indigo-700 hover:bg-indigo-50 transition-all duration-300 hover:scale-105 text-xs"
+                      className="bg-white/95 backdrop-blur-sm border-indigo-200 text-indigo-700 hover:bg-indigo-50 transition-all duration-300 hover:scale-105 text-xs shadow-lg"
                             >
                               <Users className="w-3 h-3 mr-1" />
                               {personalData ? "Update Socials" : "Add Socials"}
@@ -2788,60 +2593,118 @@ export default function Dashboard() {
                         </Dialog>
                       </div>
 
-                      {/* Personal Data Preview */}
-                      {personalData && (
-                        <div className="mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Check className="w-3 h-3 text-emerald-600" />
-                            <span className="text-xs font-medium text-emerald-900">Personal Data Loaded</span>
+              {currentStep === "input" && (
+                <>
+                  <div className="relative text-center mb-20 mt-36 max-w-4xl mx-auto">
+                    <div className="flex items-center justify-center mb-4 animate-fade-in">
+                      <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center mr-2 shadow-lg">
+                        <Sparkles className="w-4 h-4 text-white" />
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                            {personalData.youtube && (
-                              <div className="bg-white/50 rounded p-2">
-                                <p className="font-medium text-slate-700 text-xs">YouTube Insights</p>
-                                <p className="text-slate-600 text-xs">{personalData.youtube.channelName || "Channel data analyzed"}</p>
+                      <span className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                        supernova
+                      </span>
                               </div>
-                            )}
-                            {personalData.linkedin && (
-                              <div className="bg-white/50 rounded p-2">
-                                <p className="font-medium text-slate-700 text-xs">LinkedIn Profile</p>
-                                <p className="text-slate-600 text-xs">{personalData.linkedin.name || "Professional data analyzed"}</p>
+                    <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-4 leading-tight">
+                      Generate{" "}
+                      <span className="relative inline-block">
+                        <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                          viral content
+                        </span>
+                        <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-full opacity-60"></div>
+                      </span>{" "}
+                      in seconds.
+                    </h1>
+                    <p className="text-base lg:text-lg text-slate-600 mb-6 max-w-2xl mx-auto leading-relaxed font-light">
+                      Transform any idea into engaging video content using HeyGen AI digital twin.
+                    </p>
                               </div>
-                            )}
+                  <div className="max-w-2xl mx-auto mb-16 relative">
+                    <div className="relative bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-4 shadow-xl">
+                      <div className="relative">
+                        <Input
+                          value={contentInput}
+                          onChange={(e) => setContentInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey && contentInput.trim() && !isGenerating) {
+                              e.preventDefault()
+                              handleGenerate()
+                            }
+                          }}
+                          placeholder="Describe your short video content idea..."
+                          className="h-16 px-6 pr-20 text-lg border-2 border-slate-200/50 focus:border-indigo-400 focus:ring-0 focus:outline-none rounded-xl bg-white/90 backdrop-blur-sm shadow-md placeholder:text-slate-400"
+                          disabled={isGenerating}
+                          />
+                          
+                          {/* File attachment button */}
+                          <div className="absolute right-14 top-4">
+                            <input
+                              type="file"
+                              id="file-attachment"
+                              multiple
+                              accept="image/*,video/*"
+                              onChange={handleFileAttachment}
+                              className="hidden"
+                            />
+                            <label
+                              htmlFor="file-attachment"
+                              className={`h-8 w-8 p-0 ${
+                                attachedFiles.length > 0 
+                                  ? 'bg-indigo-100 text-indigo-600 border border-indigo-300' 
+                                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-800'
+                              } rounded-lg shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105 cursor-pointer flex items-center justify-center relative`}
+                              title={attachedFiles.length > 0 ? `${attachedFiles.length} file(s) attached` : 'Attach images or videos'}
+                            >
+                              <Paperclip className="w-4 h-4" />
+                              {attachedFiles.length > 0 && (
+                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-600 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                                  {attachedFiles.length}
+                                </div>
+                              )}
+                            </label>
                           </div>
+                          
+                          <Button
+                          onClick={handleGenerate}
+                          disabled={!contentInput.trim() || isGenerating}
+                          className="absolute right-3 top-4 h-8 w-8 p-0 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                        >
+                          {isGeneratingAnalysis ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <ArrowUp className="w-4 h-4" />
+                            )}
+                          </Button>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-                    <div className="text-center p-4 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 hover:shadow-md transition-all duration-300 hover:-translate-y-1">
-                      <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-                        <User className="w-6 h-6 text-white" />
+                        
+                        {/* File attachments preview */}
+                        {attachedFiles.length > 0 && (
+                          <div className="mt-4 space-y-2">
+                            <p className="text-xs text-slate-600 font-medium">Attached Files ({attachedFiles.length}/3)</p>
+                            <div className="flex flex-wrap gap-2">
+                              {attachedFiles.map((file, index) => {
+                                const FileIcon = getFileIcon(file)
+                                return (
+                                  <div
+                                    key={index}
+                                    className="flex items-center space-x-2 bg-slate-100 rounded-lg px-3 py-2 text-xs"
+                                  >
+                                    <FileIcon className="w-4 h-4 text-slate-600" />
+                                    <span className="text-slate-700 max-w-[100px] truncate">{file.name}</span>
+                                    <span className="text-slate-500">({formatFileSize(file.size)})</span>
+                                    <button
+                                      onClick={() => removeAttachment(index)}
+                                      className="text-slate-400 hover:text-red-500 transition-colors ml-1"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <h3 className="text-lg font-bold text-slate-900 mb-2">HeyGen AI Avatar</h3>
-                      <p className="text-xs text-slate-600 leading-relaxed">
-                        Create your personalized AI avatar with HeyGen's advanced technology
-                      </p>
-                    </div>
-                    <div className="text-center p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 hover:shadow-md transition-all duration-300 hover:-translate-y-1">
-                      <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-                        <TrendingUp className="w-6 h-6 text-white" />
-                      </div>
-                      <h3 className="text-lg font-bold text-slate-900 mb-2">Dynamic Analysis</h3>
-                      <p className="text-xs text-slate-600 leading-relaxed">
-                        AI-powered content optimization based on real market data
-                      </p>
-                    </div>
-                    <div className="text-center p-4 rounded-xl bg-gradient-to-br from-pink-50 to-rose-50 border border-pink-100 hover:shadow-md transition-all duration-300 hover:-translate-y-1">
-                      <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-                        <Video className="w-6 h-6 text-white" />
-                      </div>
-                      <h3 className="text-lg font-bold text-slate-900 mb-2">Instant Videos</h3>
-                      <p className="text-xs text-slate-600 leading-relaxed">
-                        Generate professional videos instantly with HeyGen AI technology
-                      </p>
-                    </div>
-                  </div>
+                            </div>
                 </>
               )}
 
@@ -2852,209 +2715,56 @@ export default function Dashboard() {
                   <div className="text-center mb-12 relative">
                     <Button
                       variant="outline"
-                      onClick={() => handleStepChange("input")}
+                      onClick={() => handleStepChange("analysis")}
                       className="absolute top-0 left-0 flex items-center bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
                     >
                       <ArrowLeft className="w-4 h-4 mr-2" />
                       Back
                     </Button>
-                    <div className="flex items-center justify-center mb-4">
-                      {personalData && (
-                        <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-emerald-50 to-green-50 px-4 py-2 rounded-full border border-emerald-200 mr-4">
+                    <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-emerald-50 to-teal-50 px-4 py-2 rounded-full mb-4">
                           <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                          <span className="text-sm font-medium text-emerald-700">AI-Personalized Scripts</span>
+                      <span className="text-sm font-medium text-slate-700">Content Ready</span>
                         </div>
-                      )}
-                      <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-indigo-50 to-purple-50 px-4 py-2 rounded-full border border-indigo-200">
-                        <Sparkles className="w-4 h-4 text-indigo-600" />
-                        <span className="text-sm font-medium text-indigo-700">LangChain Powered</span>
-                      </div>
-                    </div>
-                    <h1 className="text-3xl font-bold text-slate-900 mb-2">Generated Script & Visual Plan</h1>
-                    <p className="text-slate-600 mb-4">
-                      {personalData 
-                        ? "Personalized content tailored to your unique voice and audience based on your social media analysis" 
-                        : "Review and customize your content before generating the final video with HeyGen AI"
-                      }
+                    <h1 className="text-4xl font-bold text-slate-900 mb-3">
+                      Storyboard
+                    </h1>
+                    <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+                      Review and customize your {selectedContentType === 'caption' ? 'caption content' : selectedContentType === 'video' ? 'video scripts' : 'content'} for{' '}
+                      <span className="font-semibold text-emerald-600">
+                        {selectedPlatforms.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')}
+                      </span>
                     </p>
-                    {personalData && (
-                      <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-lg p-4 max-w-2xl mx-auto">
-                        <div className="flex items-center justify-center space-x-6 text-sm">
-                          {personalData.urls?.youtube && (
-                            <div className="flex items-center space-x-2 text-emerald-700">
-                              <Video className="w-4 h-4" />
-                              <span>YouTube Profile Analyzed</span>
-                            </div>
-                          )}
-                          {personalData.urls?.linkedin && (
-                            <div className="flex items-center space-x-2 text-emerald-700">
-                              <Users className="w-4 h-4" />
-                              <span>LinkedIn Profile Analyzed</span>
-                            </div>
-                          )}
-                          <div className="flex items-center space-x-2 text-emerald-700">
-                            <TrendingUp className="w-4 h-4" />
-                            <span>Content Personalized</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
-                  {apiError && (
-                    <Card className="border-l-4 border-l-red-500">
-                      <CardContent className="p-4">
-                        <div className="flex items-center space-x-2 text-red-700">
-                          <AlertCircle className="w-5 h-5" />
-                          <span>Error: {apiError}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Personalization Insights Panel */}
-                  {personalData && personalData.personalizedContent && (
-                    <Card className="border-0 shadow-lg bg-gradient-to-r from-purple-50 via-indigo-50 to-emerald-50 mb-8">
-                      <CardHeader className="bg-gradient-to-r from-purple-600 to-emerald-600 text-white rounded-t-lg">
-                        <CardTitle className="flex items-center text-xl">
-                          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mr-3">
-                            <Sparkles className="w-5 h-5 text-white" />
-                          </div>
-                          Personalization Intelligence
-                          <Badge className="ml-auto bg-white/20 text-white border-white/30">
-                            LangChain AI
-                          </Badge>
+                  {/* Platform-Specific Content Display */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    {/* A-Roll Script / Main Content */}
+                    {(selectedContentType === 'video' || selectedContentType === 'both') && (
+                      <Card className="border-0 shadow-lg">
+                        <CardHeader>
+                          <CardTitle className="flex items-center text-slate-900">
+                            <Video className="w-5 h-5 mr-2 text-blue-600" />
+                            A-Roll Script (Presenter)
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {/* Analysis Summary */}
-                          <div className="space-y-4">
-                            <h4 className="font-semibold text-slate-900 flex items-center">
-                              <Users className="w-5 h-5 mr-2 text-purple-600" />
-                              Profile Analysis Summary
-                            </h4>
-                            {personalData.urls?.youtube && (
-                              <div className="bg-white/70 rounded-lg p-4 border border-purple-200">
-                                <div className="flex items-center space-x-2 mb-2">
-                                  <Video className="w-4 h-4 text-red-600" />
-                                  <span className="font-medium text-slate-900">YouTube Insights</span>
-                                </div>
-                                <div className="text-sm text-slate-700 space-y-1">
-                                  <p><span className="font-medium">Content Style:</span> Analyzed from channel patterns</p>
-                                  <p><span className="font-medium">Audience:</span> Tailored to your viewer demographics</p>
-                                  <p><span className="font-medium">Voice:</span> Matched to your presentation style</p>
-                                </div>
-                              </div>
-                            )}
-                            {personalData.urls?.linkedin && (
-                              <div className="bg-white/70 rounded-lg p-4 border border-indigo-200">
-                                <div className="flex items-center space-x-2 mb-2">
-                                  <Users className="w-4 h-4 text-blue-600" />
-                                  <span className="font-medium text-slate-900">LinkedIn Insights</span>
-                                </div>
-                                <div className="text-sm text-slate-700 space-y-1">
-                                  <p><span className="font-medium">Professional Tone:</span> Matched to your communication style</p>
-                                  <p><span className="font-medium">Expertise:</span> Leveraged your industry knowledge</p>
-                                  <p><span className="font-medium">Authority:</span> Reflected your professional positioning</p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Personalization Features */}
-                          <div className="space-y-4">
-                            <h4 className="font-semibold text-slate-900 flex items-center">
-                              <TrendingUp className="w-5 h-5 mr-2 text-emerald-600" />
-                              Personalization Features Applied
-                            </h4>
-                            <div className="space-y-3">
-                              <div className="flex items-center space-x-3 bg-white/70 rounded-lg p-3 border border-emerald-200">
-                                <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
-                                  <Check className="w-4 h-4 text-white" />
-                                </div>
-                                <span className="text-sm text-slate-700">Voice tone matched to your style</span>
-                              </div>
-                              <div className="flex items-center space-x-3 bg-white/70 rounded-lg p-3 border border-emerald-200">
-                                <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
-                                  <Check className="w-4 h-4 text-white" />
-                                </div>
-                                <span className="text-sm text-slate-700">Content format aligned with your preferences</span>
-                              </div>
-                              <div className="flex items-center space-x-3 bg-white/70 rounded-lg p-3 border border-emerald-200">
-                                <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
-                                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                                </div>
-                                <span className="text-sm text-slate-700">Audience targeting based on your followers</span>
-                              </div>
-                              <div className="flex items-center space-x-3 bg-white/70 rounded-lg p-3 border border-emerald-200">
-                                <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
-                                  <Sparkles className="w-3 h-3 text-white" />
-                                </div>
-                                <span className="text-sm text-slate-700">Expertise and credibility integrated</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {personalData.personalizedContent.personalizationNotes && (
-                          <div className="mt-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
-                            <h5 className="font-medium text-slate-900 mb-2 flex items-center">
-                              <Sparkles className="w-4 h-4 mr-2 text-indigo-600" />
-                              AI Personalization Notes
-                            </h5>
-                            <p className="text-sm text-slate-700 leading-relaxed">
-                              {personalData.personalizedContent.personalizationNotes}
-                            </p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  <div className="grid lg:grid-cols-2 gap-8">
-                    <Card className={`${personalData ? 'border-2 border-emerald-200 shadow-lg' : 'shadow-md'}`}>
-                      <CardHeader className={personalData ? 'bg-gradient-to-r from-emerald-50 to-green-50' : ''}>
-                        <CardTitle className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <User className="w-5 h-5 mr-2 text-indigo-600" />
-                            A-Roll Script
-                            {personalData && (
-                              <Badge className="ml-2 bg-emerald-100 text-emerald-700 border-emerald-300">
-                                Personalized
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {personalData && (
+                        <CardContent>
+                          <Textarea
+                            value={aRollScript}
+                            onChange={(e) => setARollScript(e.target.value)}
+                            className="min-h-[400px] text-sm font-mono leading-relaxed border-slate-200"
+                            placeholder="Your A-roll script will appear here after generation..."
+                          />
+                          <div className="mt-4 flex justify-between items-center">
                               <Button
-                                size="sm"
-                                variant="outline"
-                                className="bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
-                                onClick={() => {
-                                  setToastMessage({
-                                    title: "Personalized Script",
-                                    description: "This script was generated using your social media analysis data"
-                                  })
-                                  setShowToast(true)
-                                  setTimeout(() => setShowToast(false), 3000)
-                                }}
-                              >
-                                <Sparkles className="w-3 h-3 mr-1" />
-                                Info
-                              </Button>
-                            )}
-                          <Button
-                            size="sm"
                             variant="outline"
                             onClick={handleRegenerateScripts}
                             disabled={isGeneratingScripts}
-                            className="bg-white text-indigo-600 border-indigo-300 hover:bg-indigo-50"
+                              className="text-blue-600 border-blue-300 hover:bg-blue-50"
                           >
-                            {isGeneratingScripts && currentStep === "storyboard" ? (
+                              {isGeneratingScripts ? (
                               <>
-                                <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                                Regen...
+                                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                  Regenerating...
                               </>
                             ) : (
                               <>
@@ -3063,1201 +2773,306 @@ export default function Dashboard() {
                               </>
                             )}
                           </Button>
-                          </div>
-                        </CardTitle>
-                        {personalData && (
-                          <div className="text-xs text-emerald-600 flex items-center mt-2">
-                            <TrendingUp className="w-3 h-3 mr-1" />
-                            Generated using your personal voice and audience insights
-                          </div>
-                        )}
-                      </CardHeader>
-                      <CardContent>
-                        <Textarea
-                          value={aRollScript}
-                          onChange={(e) => setARollScript(e.target.value)}
-                          className={`min-h-[400px] text-sm leading-relaxed ${personalData ? 'border-emerald-200 focus:border-emerald-400' : ''}`}
-                          placeholder={
-                            isGeneratingScripts
-                              ? "Generating personalized A-Roll script..."
-                              : personalData 
-                                ? "Your personalized spoken content will appear here..."
-                              : "Your spoken content will appear here..."
-                          }
-                          disabled={isGeneratingScripts}
-                        />
-                        {personalData && aRollScript && (
-                          <div className="mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                            <div className="flex items-center space-x-2 text-emerald-700 text-xs">
-                              <Check className="w-3 h-3" />
-                              <span>Script personalized based on your social media analysis</span>
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-
-                    <Card className={`${personalData ? 'border-2 border-emerald-200 shadow-lg' : 'shadow-md'}`}>
-                      <CardHeader className={personalData ? 'bg-gradient-to-r from-emerald-50 to-green-50' : ''}>
-                        <CardTitle className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <Video className="w-5 h-5 mr-2 text-emerald-600" />
-                            B-Roll Script
-                            {personalData && (
-                              <Badge className="ml-2 bg-emerald-100 text-emerald-700 border-emerald-300">
-                                Personalized
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {personalData && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
-                                onClick={() => {
-                                  setToastMessage({
-                                    title: "Personalized Visuals",
-                                    description: "Visual directions tailored to your content style"
-                                  })
-                                  setShowToast(true)
-                                  setTimeout(() => setShowToast(false), 3000)
-                                }}
-                              >
-                                <Sparkles className="w-3 h-3 mr-1" />
-                                Info
-                              </Button>
-                            )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={handleRegenerateScripts}
-                            disabled={isGeneratingScripts}
-                            className="bg-white text-emerald-600 border-emerald-300 hover:bg-emerald-50"
-                          >
-                            {isGeneratingScripts && currentStep === "storyboard" ? (
-                              <>
-                                <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                                Regen...
-                              </>
-                            ) : (
-                              <>
-                                <RefreshCw className="w-4 h-4 mr-2" />
-                                Regenerate
-                              </>
-                            )}
-                          </Button>
-                          </div>
-                        </CardTitle>
-                        {personalData && (
-                          <div className="text-xs text-emerald-600 flex items-center mt-2">
-                            <Video className="w-3 h-3 mr-1" />
-                            Visual directions matched to your content format preferences
-                          </div>
-                        )}
-                      </CardHeader>
-                      <CardContent>
-                        <Textarea
-                          value={bRollScript}
-                          onChange={(e) => setBRollScript(e.target.value)}
-                          className={`min-h-[400px] text-sm leading-relaxed font-mono ${personalData ? 'border-emerald-200 focus:border-emerald-400' : ''}`}
-                          placeholder={
-                            isGeneratingScripts
-                              ? "Generating personalized B-Roll script..."
-                              : personalData
-                                ? "Personalized visual cues and B-roll instructions will appear here..."
-                              : "Visual cues and B-roll instructions will appear here..."
-                          }
-                          disabled={isGeneratingScripts}
-                        />
-                        {personalData && bRollScript && (
-                          <div className="mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                            <div className="flex items-center space-x-2 text-emerald-700 text-xs">
-                              <Check className="w-3 h-3" />
-                              <span>Visual directions tailored to your established content style</span>
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Enhanced Generate Video Button */}
-                  {/* Generate Video Button */}
-                  <div className="flex justify-center">
-                    <div className="text-center">
-                      {/* Caption info */}
-                      <div className="mb-4 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg">
-                        <div className="flex items-center justify-center space-x-2 mb-2">
-                          <div className="w-6 h-6 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
-                            <span className="text-white text-xs font-bold">CC</span>
-                </div>
-                          <span className="text-sm font-semibold text-indigo-900">Auto-Generated Captions</span>
-                        </div>
-                        <p className="text-xs text-indigo-700">
-                          Your video will include stylized captions with gold highlights and rounded backgrounds
-                        </p>
-          </div>
-
-                      <Button
-                        onClick={handleGenerateVideo}
-                        disabled={isGenerating || !aRollScript || !bRollScript}
-                        className="px-8 py-4 text-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-                      >
-                        {isGenerating ? (
-                    <div className="flex items-center space-x-2">
-                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            <span>Starting Generation...</span>
-                    </div>
-                        ) : (
-                          <>
-                            <Video className="w-5 h-5 mr-2" />
-                            Generate Video with Captions
-                          </>
-                        )}
-                    </Button>
-                    </div>
-                </div>
-                </div>
-              )}
-
-              {/* Final Video Step */}
-              {currentStep === 'video' && (
-                <div className="space-y-8">
-                  <div className="text-center mb-8 relative">
-                    <h1 className="text-3xl font-bold text-slate-900 mb-2">Your AI-Generated Video</h1>
-                    <p className="text-slate-600">Your content is ready to share with the world!</p>
-                    
-                    {/* Back Button - Top Left */}
-                    <Button
-                      variant="outline"
-                      onClick={() => handleStepChange('storyboard')}
-                      className="absolute top-0 left-0 flex items-center"
-                    >
-                      <ArrowLeft className="w-4 h-4 mr-2" />
-                      Back
-                    </Button>
-                </div>
-
-                  <div className="flex flex-col lg:flex-row gap-8 items-start">
-                    {/* TikTok-style Vertical Video Player */}
-                    <div className="flex-shrink-0 mx-auto">
-                      <div className="relative bg-black rounded-3xl p-2 shadow-2xl" style={{ width: '280px', height: '500px' }}>
-                        {/* Phone Frame */}
-                        <div className="relative w-full h-full bg-black rounded-2xl overflow-hidden">
-                          {/* Video Content */}
-                          <div className="relative w-full h-full bg-black">
-                            {/* Actual Video Player */}
-                            <video 
-                              id="phone-video"
-                              className="w-full h-full object-cover rounded-2xl"
-                              poster="/placeholder.jpg"
-                              controls={false}
-                              loop
-                              playsInline
-                              preload="auto"
-                              key={generatedVideoUrl || "/HackAI Demo.mp4"}
-                              onError={(e) => {
-                                console.error('Video playback error:', e)
-                                // Fallback to demo video if HeyGen video fails
-                                const video = e.target as HTMLVideoElement
-                                if (video.src !== "/HackAI Demo.mp4" && !generatedVideoUrl) {
-                                  video.src = "/HackAI Demo.mp4"
-                                }
-                              }}
-                              onLoadedData={() => {
-                                console.log('Video loaded successfully:', generatedVideoUrl || "/HackAI Demo.mp4")
-                              }}
-                            >
-                              {/* Use HeyGen generated video if available, otherwise fallback to demo */}
-                              <source 
-                                src={generatedVideoUrl || "/HackAI Demo.mp4"} 
-                                type="video/mp4" 
-                              />
-                              {/* Fallback for browsers that don't support video */}
-                              Your browser does not support the video tag.
-                            </video>
-                            
-                            {/* Simple Play/Pause Overlay */}
-                            <div 
-                              id="video-overlay"
-                              className="absolute inset-0 flex items-center justify-center bg-black/20 cursor-pointer transition-opacity duration-300"
-                              onClick={async () => {
-                                const video = document.getElementById('phone-video') as HTMLVideoElement;
-                                const overlay = document.getElementById('video-overlay');
-                                if (video && overlay) {
-                                  try {
-                                    if (video.paused) {
-                                      // Unmute and play with audio
-                                      video.muted = false;
-                                      await video.play();
-                                      overlay.style.opacity = '0';
-                                      setTimeout(() => {
-                                        overlay.style.pointerEvents = 'none';
-                                      }, 300);
-                                    } else {
-                                      video.pause();
-                                      overlay.style.opacity = '1';
-                                      overlay.style.pointerEvents = 'auto';
-                                    }
-                                  } catch (error) {
-                                    console.log('Video play failed:', error);
-                                    // Fallback to muted playback if audio fails
-                                    video.muted = true;
-                                    await video.play();
-                                    overlay.style.opacity = '0';
-                                    setTimeout(() => {
-                                      overlay.style.pointerEvents = 'none';
-                                    }, 300);
-                                  }
-                                }
-                              }}
-                            >
-                              <div className="w-20 h-20 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center border-2 border-white/50 hover:bg-white/40 transition-all duration-300 hover:scale-110">
-                                <Play className="w-8 h-8 text-white ml-1" />
-                              </div>
-          </div>
-
-                            {/* Video ended overlay */}
-                            <div 
-                              id="video-ended"
-                              className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 pointer-events-none transition-opacity duration-300"
-                            >
-                              <div 
-                                className="w-20 h-20 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center border-2 border-white/50 hover:bg-white/40 transition-all duration-300 hover:scale-110 cursor-pointer"
-                                onClick={async () => {
-                                  const video = document.getElementById('phone-video') as HTMLVideoElement;
-                                  const endedOverlay = document.getElementById('video-ended');
-                                  if (video && endedOverlay) {
-                                    try {
-                                      video.currentTime = 0;
-                                      video.muted = false;
-                                      await video.play();
-                                      endedOverlay.style.opacity = '0';
-                                      endedOverlay.style.pointerEvents = 'none';
-                                    } catch (error) {
-                                      console.log('Video replay failed:', error);
-                                      // Fallback to muted playback if audio fails
-                                      video.muted = true;
-                                      video.currentTime = 0;
-                                      await video.play();
-                                      endedOverlay.style.opacity = '0';
-                                      endedOverlay.style.pointerEvents = 'none';
-                                    }
-                                  }
-                                }}
-                              >
-                                <RefreshCw className="w-8 h-8 text-white" />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Video Details and Actions */}
-                    <div className="flex-1 space-y-6">
-                      {/* Video Metadata Cards */}
-                      <div className="grid grid-cols-2 gap-4">
-            <Card>
-                          <CardContent className="p-4 text-center">
-                            <Clock className="w-8 h-8 mx-auto mb-2 text-indigo-600" />
-                            <p className="text-sm text-slate-600">Duration</p>
-                            <p className="text-lg font-semibold text-slate-900">
-                              {generatedVideoUrl && generatedVideoUrl.startsWith('http') ? 'AI Generated' : 'Demo Video'}
-                            </p>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardContent className="p-4 text-center">
-                            <Video className="w-8 h-8 mx-auto mb-2 text-emerald-600" />
-                            <p className="text-sm text-slate-600">Format</p>
-                            <p className="text-lg font-semibold text-slate-900">9:16 Vertical</p>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardContent className="p-4 text-center">
-                            <User className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-                            <p className="text-sm text-slate-600">Voice</p>
-                            <p className="text-lg font-semibold text-slate-900">HeyGen AI</p>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardContent className="p-4 text-center">
-                            <div className="w-8 h-8 mx-auto mb-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">CC</span>
-                            </div>
-                            <p className="text-sm text-slate-600">Captions</p>
-                            <p className="text-lg font-semibold text-slate-900">
-                              {generatedVideoUrl && generatedVideoUrl.includes('caption') ? 'Embedded' : 'Auto-Generated'}
-                            </p>
-                          </CardContent>
-                        </Card>
-          </div>
-
-                      {/* Performance Prediction */}
-                      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-              <CardHeader>
-                          <CardTitle className="flex items-center text-green-800">
-                            <TrendingUp className="w-5 h-5 mr-2" />
-                            {generatedVideoUrl && generatedVideoUrl.startsWith('http') ? 'HeyGen AI Generated Video' : 'Demo Video'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                          <div className="text-center">
-                            <div>
-                              <p className="text-2xl font-bold text-green-700">
-                                {generatedVideoUrl && generatedVideoUrl.startsWith('http') ? '✨ AI Avatar Video' : '🎬 Demo Video'}
-                              </p>
-                              <p className="text-sm text-green-600">
-                                {generatedVideoUrl && generatedVideoUrl.startsWith('http') ? 
-                                  'Generated using HeyGen API with auto-captions' : 
-                                  'Demo video - Generate with HeyGen for real results'
-                                }
-                              </p>
-                            </div>
+                            <Button variant="ghost" size="sm" className="text-slate-500">
+                              <Copy className="w-4 h-4 mr-2" />
+                              Copy
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
+                    )}
 
-                      {/* Action Buttons */}
-                      <div className="space-y-3">
-                        <Button 
-                          className="w-full bg-indigo-600 hover:bg-indigo-700 text-lg py-3"
-                          onClick={() => {
-                            const videoUrl = generatedVideoUrl
-                            if (videoUrl && videoUrl.startsWith('http')) {
-                              window.open(videoUrl, '_blank')
-                            } else if (videoUrl) {
-                              const link = document.createElement('a')
-                              link.href = videoUrl
-                              link.download = 'generated-video.mp4'
-                              document.body.appendChild(link)
-                              link.click()
-                              document.body.removeChild(link)
-                            } else {
-                              alert('No video available for download')
-                            }
-                          }}
-                          disabled={!generatedVideoUrl}
-                        >
-                          <Download className="w-5 h-5 mr-2" />
-                          {generatedVideoUrl && generatedVideoUrl.startsWith('http') ? 'Open Video' : 'Download Video'}
-                        </Button>
-                        <div className="grid grid-cols-2 gap-3">
-                          <Button 
-                            variant="outline" 
-                            className="py-3"
-                            onClick={() => {
-                              navigator.clipboard.writeText(aRollScript)
-                            }}
-                          >
-                            <Copy className="w-4 h-4 mr-2" />
-                            Copy Script
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            className="py-3"
+                    {/* Platform-Specific Captions */}
+                    <Card className="border-0 shadow-lg">
+                      <CardHeader>
+                        <CardTitle className="flex items-center text-slate-900">
+                          <Edit className="w-5 h-5 mr-2 text-emerald-600" />
+                          Platform Captions
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {selectedPlatforms.map((platform) => (
+                            <div key={platform} className="border rounded-lg p-4 bg-slate-50">
+                              <div className="flex items-center space-x-2 mb-3">
+                                <div className={`w-6 h-6 rounded bg-gradient-to-br ${
+                                  platform === 'instagram' ? 'from-pink-500 to-orange-500' :
+                                  platform === 'tiktok' ? 'from-black to-slate-800' :
+                                  platform === 'youtube' ? 'from-red-500 to-red-600' :
+                                  platform === 'twitter' ? 'from-slate-900 to-slate-700' :
+                                  platform === 'linkedin' ? 'from-blue-600 to-blue-700' :
+                                  'from-blue-500 to-blue-600'
+                                }`}></div>
+                                <span className="font-medium text-slate-900 capitalize">{platform}</span>
+                                {(['instagram', 'tiktok', 'youtube', 'facebook'].includes(platform) && selectedContentType !== 'caption') && (
+                                  <Badge variant="secondary" className="text-xs">Video + Caption</Badge>
+                                )}
+                                {(!['instagram', 'tiktok', 'youtube', 'facebook'].includes(platform) || selectedContentType === 'caption') && (
+                                  <Badge variant="outline" className="text-xs">Caption Only</Badge>
+                                )}
+                              </div>
+                        <Textarea
+                                defaultValue={generatePlatformCaption(platform, aRollScript || contentInput)}
+                                className="min-h-[120px] text-sm resize-none border-slate-200"
+                                placeholder={`Optimized caption for ${platform}...`}
+                              />
+                            </div>
+                          ))}
+                          </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* B-Roll Script (only for video content) */}
+                    {(selectedContentType === 'video' || selectedContentType === 'both') && (
+                      <Card className="border-0 shadow-lg lg:col-span-2">
+                        <CardHeader>
+                          <CardTitle className="flex items-center text-slate-900">
+                            <Camera className="w-5 h-5 mr-2 text-purple-600" />
+                            B-Roll Script (Visual Overlay)
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Textarea
+                            value={bRollScript}
+                            onChange={(e) => setBRollScript(e.target.value)}
+                            className="min-h-[200px] text-sm font-mono leading-relaxed border-slate-200"
+                            placeholder="Your B-roll script will appear here after generation..."
+                          />
+                          <div className="mt-4 flex justify-between items-center">
+                            <div className="flex items-center space-x-4">
+                              <Button
+                                variant="outline"
+                                onClick={() => loadBrollFootage(bRollScript)}
+                                disabled={loadingBroll || !bRollScript}
+                                className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                              >
+                                {loadingBroll ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                    Loading Footage...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Video className="w-4 h-4 mr-2" />
+                                    Preview B-Roll
+                                  </>
+                                )}
+                              </Button>
+                              {brollFootage.length > 0 && (
+                                <Badge variant="secondary" className="text-emerald-600 bg-emerald-50">
+                                  {brollFootage.length} clips ready
+                                </Badge>
+                              )}
+                            </div>
+                            <Button variant="ghost" size="sm" className="text-slate-500">
+                              <Copy className="w-4 h-4 mr-2" />
+                              Copy
+                            </Button>
+                          </div>
+                      </CardContent>
+                    </Card>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-center items-center pt-8">
+                    <div className="flex items-center space-x-4">
+                      {(selectedContentType === 'video' || selectedContentType === 'both') && (
+                      <Button
+                        onClick={handleGenerateVideo}
+                          disabled={isGenerating || !selectedAvatarId || !selectedVoiceId || !aRollScript}
+                          className={`bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 flex items-center text-white shadow-lg transition-all duration-300 ${
+                            isGenerating ? 'cursor-not-allowed opacity-90' : 'hover:scale-105'
+                          }`}
+                      >
+                        {isGenerating ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                              <span className="animate-pulse">Generating Video...</span>
+                            </>
+                        ) : (
+                          <>
+                              <Play className="w-4 h-4 mr-2" />
+                              Generate Video
+                          </>
+                        )}
+                    </Button>
+                      )}
+                      
+                      {selectedContentType === 'caption' && (
+                    <Button
                             onClick={handleAddToLibrary}
+                          className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 flex items-center text-white shadow-lg transition-all duration-300 hover:scale-105"
                           >
                             <Save className="w-4 h-4 mr-2" />
                             Save to Library
                           </Button>
-                    </div>
-                  </div>
+                      )}
 
-                      {/* Success Message */}
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-                        <div className="flex items-center space-x-2 text-emerald-700">
-                          <Check className="w-5 h-5" />
-                          <span className="font-medium">
-                            {generatedVideoUrl && generatedVideoUrl.startsWith('http')
-                              ? generatedVideoUrl.includes('caption') 
-                                ? 'Video generated successfully with embedded HeyGen captions!' 
-                                : 'Video generated successfully with HeyGen AI!'
-                              : 'Demo video ready - Generate with HeyGen for real AI video with captions!'
-                            }
-                          </span>
-                        </div>
-                        
-                        {/* Add caption info */}
-                        {generatedVideoUrl && generatedVideoUrl.includes('caption') && (
-                          <div className="mt-2 text-sm text-emerald-600">
-                            ✨ This video includes stylized captions with gold highlights and rounded backgrounds as configured in your HeyGen settings.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Navigation */}
-                  <div className="flex justify-center items-center pt-4">
+                      {selectedContentType === 'both' && !generatedVideoUrl && (
                     <Button
                       onClick={handleAddToLibrary}
-                      className="bg-emerald-600 hover:bg-emerald-700 flex items-center"
+                          variant="outline"
+                          className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
                     >
-                      Add to Library
-                      <Plus className="w-4 h-4 ml-2" />
+                          <Save className="w-4 h-4 mr-2" />
+                          Save Captions Only
                     </Button>
-                  </div>
-                </div>
+              )}
+            </div>
+              </div>
+                      </div>
               )}
             </div>
           )}
-
-          {/* Library Tab */}
-          {activeTab === 'library' && (
-            <div className="max-w-6xl mx-auto">
-              <div className="mb-8">
-                <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-2">Your Content Library</h1>
-                <p className="text-slate-600">Manage and view your created content.</p>
               </div>
 
-              {contentLibrary.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {contentLibrary.map((content) => (
-                    <Card key={content.id} className="shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                      <div className="aspect-video bg-slate-200 rounded-t-lg overflow-hidden">
-                        <img 
-                          src={content.thumbnail} 
-                          alt={content.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <CardContent className="p-4">
-                        <h3 className="font-semibold text-slate-900 mb-2 line-clamp-2">
-                          {content.title}
-                        </h3>
-                        <div className="flex items-center justify-between mb-3">
-                          <Badge variant="secondary" className="text-xs">
-                            {content.type}
-                          </Badge>
-                          <span className="text-xs text-slate-500 flex items-center">
-                            <Calendar className="w-3 h-3 mr-1" />
-                            {content.createdAt}
-                          </span>
+        {/* Platform Selection Modal */}
+        {showPlatformSelection && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-auto p-6">
+              <div className="text-center mb-6">
+                <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                  <TrendingUp className="w-6 h-6 text-white" />
+                    </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Choose Your Platforms</h3>
+                <p className="text-sm text-slate-600">Select where you want to share your content</p>
+                  </div>
+
+              {/* Platform Selection */}
+              <div className="mb-6">
+                <h4 className="text-base font-semibold text-slate-900 mb-3">Target Platforms</h4>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { id: 'instagram', name: 'Instagram', color: 'from-pink-500 to-orange-500', supportsVideo: true },
+                    { id: 'tiktok', name: 'TikTok', color: 'from-black to-slate-800', supportsVideo: true },
+                    { id: 'youtube', name: 'YouTube', color: 'from-red-500 to-red-600', supportsVideo: true },
+                    { id: 'twitter', name: 'Twitter/X', color: 'from-slate-900 to-slate-700', supportsVideo: false },
+                    { id: 'linkedin', name: 'LinkedIn', color: 'from-blue-600 to-blue-700', supportsVideo: false },
+                    { id: 'facebook', name: 'Facebook', color: 'from-blue-500 to-blue-600', supportsVideo: true }
+                  ].map((platform) => (
+                    <button
+                      key={platform.id}
+                      onClick={() => {
+                        setSelectedPlatforms(prev => 
+                          prev.includes(platform.id) 
+                            ? prev.filter(p => p !== platform.id)
+                            : [...prev, platform.id]
+                        )
+                        
+                        // Auto-select content type based on platform
+                        if (platform.supportsVideo && !selectedPlatforms.some(p => 
+                          ['instagram', 'tiktok', 'youtube', 'facebook'].includes(p)
+                        )) {
+                          setSelectedContentType('video')
+                        }
+                      }}
+                      className={`p-3 rounded-lg border-2 transition-all duration-300 hover:scale-105 ${
+                        selectedPlatforms.includes(platform.id)
+                          ? 'border-indigo-500 bg-indigo-50'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 bg-gradient-to-br ${platform.color} rounded-md flex items-center justify-center mx-auto mb-2 shadow-md`}>
+                        <div className="w-4 h-4 bg-white rounded opacity-90"></div>
                         </div>
-                        <div className="flex space-x-2">
-                          <Button size="sm" variant="outline" className="flex-1">
-                            <Eye className="w-3 h-3 mr-1" />
-                            View
-                          </Button>
-                          <Button size="sm" variant="outline" className="flex-1">
-                            <Edit className="w-3 h-3 mr-1" />
-                            Edit
-                          </Button>
-                </div>
-              </CardContent>
-            </Card>
+                      <p className="text-xs font-medium text-slate-900">{platform.name}</p>
+                      {platform.supportsVideo && (
+                        <p className="text-xs text-slate-500 mt-1">Video</p>
+                      )}
+                      {!platform.supportsVideo && (
+                        <p className="text-xs text-slate-500 mt-1">Caption</p>
+                      )}
+                    </button>
                   ))}
-                </div>
-              ) : (
-                <Card className="shadow-md">
-                  <CardContent className="p-8 lg:p-12 text-center">
-                    <Folder className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-slate-900 mb-2">No content yet</h3>
-                    <p className="text-slate-600 mb-4">Try creating something!</p>
-                    <Button onClick={() => setActiveTab('create')} className="bg-indigo-600 hover:bg-indigo-700">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Your First Content
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-
-          {/* Settings Tab */}
-          {activeTab === 'settings' && (
-            <div className="max-w-2xl mx-auto">
-              <div className="mb-8">
-                <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-2">Settings</h1>
-                <p className="text-slate-600">Manage your account and preferences.</p>
-              </div>
-
-              <div className="space-y-6">
-                {/* Profile Settings */}
-                <Card className="shadow-md">
-              <CardHeader>
-                    <CardTitle>Profile Information</CardTitle>
-              </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="name">Name</Label>
-                        <Input id="name" defaultValue="Kevin Valencia" />
-                    </div>
-                      <div>
-                        <Label htmlFor="email">Email</Label>
-                        <Input id="email" type="email" defaultValue="alex@example.com" />
-                  </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* HeyGen Configuration */}
-                <Card className="shadow-md">
-                  <CardHeader>
-                    <CardTitle>HeyGen AI Configuration</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="avatar-select">Select Avatar</Label>
-                        <select
-                          id="avatar-select"
-                          value={selectedAvatarId}
-                          onChange={(e) => setSelectedAvatarId(e.target.value)}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        >
-                          <option value="">Select an avatar...</option>
-                          {availableAvatars.map((avatar) => (
-                            <option key={avatar.avatar_id} value={avatar.avatar_id}>
-                              {avatar.avatar_name} ({avatar.gender})
-                            </option>
-                          ))}
-                        </select>
-                        <p className="text-sm text-slate-600 mt-1">
-                          {availableAvatars.length} avatars available
-                        </p>
-                    </div>
-                      
-                      <div>
-                        <Label htmlFor="voice-select">Select Voice</Label>
-                        <select
-                          id="voice-select"
-                          value={selectedVoiceId}
-                          onChange={(e) => setSelectedVoiceId(e.target.value)}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        >
-                          <option value="">Select a voice...</option>
-                          {availableVoices.map((voice) => (
-                            <option key={voice.voice_id} value={voice.voice_id}>
-                              {voice.name} ({voice.language} - {voice.gender})
-                            </option>
-                          ))}
-                        </select>
-                        <p className="text-sm text-slate-600 mt-1">
-                          {availableVoices.length} voices available
-                        </p>
-                  </div>
-                      
-                      {/* Caption Feature Info */}
-                      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-4">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <div className="w-6 h-6 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
-                            <span className="text-white text-xs font-bold">CC</span>
-                    </div>
-                          <h4 className="font-semibold text-indigo-900">Automatic Captions</h4>
-                  </div>
-                        <p className="text-sm text-indigo-700 mb-2">
-                          All generated videos include stylized captions with:
-                        </p>
-                        <ul className="text-xs text-indigo-600 space-y-1 ml-4">
-                          <li>• Gold highlighted text for emphasis</li>
-                          <li>• Semi-transparent rounded backgrounds</li>
-                          <li>• Bottom positioning for mobile viewing</li>
-                          <li>• Automatic timestamp removal from speech</li>
-                        </ul>
-                    </div>
-                  </div>
-                    
-                    {/* Connection Status */}
-                    <div className={`rounded-lg p-4 border ${
-                      apiStatus.testing ? 'bg-yellow-50 border-yellow-200' :
-                      apiStatus.connected ? 'bg-green-50 border-green-200' : 
-                      'bg-red-50 border-red-200'
-                    }`}>
-                      <div className="flex items-center space-x-2 mb-2">
-                        <div className={`w-3 h-3 rounded-full ${
-                          apiStatus.testing ? 'bg-yellow-500' :
-                          apiStatus.connected ? 'bg-green-500' : 'bg-red-500'
-                        }`}></div>
-                        <span className={`text-sm font-medium ${
-                          apiStatus.testing ? 'text-yellow-900' :
-                          apiStatus.connected ? 'text-green-900' : 'text-red-900'
-                        }`}>
-                          {apiStatus.testing ? 'Testing HeyGen API...' :
-                           apiStatus.connected ? 'HeyGen API Connected' : 
-                           'HeyGen API Disconnected'}
-                        </span>
-                      </div>
-                      
-                      {apiStatus.error && (
-                        <p className="text-sm text-red-600 mb-2">
-                          Error: {apiStatus.error}
-                        </p>
-                      )}
-                      
-                      {apiStatus.connected && (
-                        <>
-                          <p className="text-sm text-green-600">
-                            Avatar: {availableAvatars.find(a => a.avatar_id === selectedAvatarId)?.avatar_name || 'None selected'}
-                            {(customAvatarId === selectedAvatarId && hasUploadedVideo) && (
-                              <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">Custom</span>
-                            )}
-                          </p>
-                          <p className="text-sm text-green-600">
-                            Voice: {availableVoices.find(v => v.voice_id === selectedVoiceId)?.name || 'None selected'}
-                          </p>
-                          {uploadedVideo.assetId && (
-                            <p className="text-sm text-green-600 mt-2">
-                              Training Video: Uploaded (Asset ID: {uploadedVideo.assetId})
-                            </p>
-                          )}
-                        </>
-                      )}
-                      
-                      {!apiStatus.connected && !apiStatus.testing && (
-                        <div className="mt-2">
-                          <p className="text-sm text-red-600 mb-2">
-                            Please check your HeyGen API key configuration.
-                          </p>
-                          
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={async () => {
-                              setApiStatus(prev => ({ ...prev, testing: true, error: null }))
-                              try {
-                                const isValid = await heygenAPI.testApiKey()
-                                if (isValid) {
-                                  // Reload data
-                                  const [avatars, voices] = await Promise.all([
-                                    heygenAPI.getAvatars(),
-                                    heygenAPI.getVoices()
-                                  ])
-                                  setAvailableAvatars(avatars)
-                                  setAvailableVoices(voices)
-                                  setApiStatus({ connected: true, testing: false, error: null })
-                                } else {
-                                  setApiStatus({ connected: false, testing: false, error: 'Invalid API key' })
-                                }
-                              } catch (error) {
-                                setApiStatus({ 
-                                  connected: false, 
-                                  testing: false, 
-                                  error: error instanceof Error ? error.message : 'Connection failed' 
-                                })
-                              }
-                            }}
-                            disabled={apiStatus.testing}
-                          >
-                            {apiStatus.testing ? (
-                              <>
-                                <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mr-2" />
-                                Testing...
-                              </>
-                            ) : (
-                              <>
-                                <RefreshCw className="w-3 h-3 mr-2" />
-                                Retry Connection
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Preferences */}
-                <Card className="shadow-md">
-                  <CardHeader>
-                    <CardTitle>Preferences</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="dark-mode">Dark Mode</Label>
-                        <p className="text-sm text-slate-600">Toggle dark mode interface</p>
-                    </div>
-                      <Switch id="dark-mode" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="notifications">Email Notifications</Label>
-                        <p className="text-sm text-slate-600">Receive email updates</p>
-                    </div>
-                      <Switch id="notifications" defaultChecked />
-                </div>
-              </CardContent>
-            </Card>
-
-                {/* AI Avatar Upload */}
-                <Card className="shadow-md">
-              <CardHeader>
-                    <CardTitle>AI Avatar Video Upload</CardTitle>
-              </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-slate-600 mb-4">
-                      Upload a video of yourself to create a custom AI avatar. Your avatar will be automatically processed and ready for content generation.
-                    </p>
-                    
-                    {/* Avatar Creation Progress */}
-                    {avatarCreation.isProcessing && (
-                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200 mb-4">
-                        <div className="flex items-center space-x-3 mb-4">
-                          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
-                            <User className="w-4 h-4 text-white" />
-                  </div>
-                          <div>
-                            <h4 className="font-semibold text-blue-900">Creating Your AI Avatar</h4>
-                            <p className="text-sm text-blue-700">Estimated time: {avatarCreation.estimatedTime}</p>
-                  </div>
-                  </div>
-                        
-                        {/* Progress Bar */}
-                        <div className="mb-4">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm font-medium text-blue-900">{avatarCreation.phase}</span>
-                            <span className="text-sm text-blue-700">{avatarCreation.progress}%</span>
-                  </div>
-                          <div className="w-full bg-blue-200 rounded-full h-2">
-                            <div 
-                              className="h-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500 ease-out" 
-                              style={{ width: `${avatarCreation.progress}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                        
-                        
-                        {/* Current Phase Indicator */}
-                        <div className="flex items-center space-x-2 text-blue-700">
-                          <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                          <span className="text-sm">{avatarCreation.phase}</span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Video Upload Section */}
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="video-upload">Upload Avatar Training Video</Label>
-                        <div className="mt-2">
-                          <input
-                            id="video-upload"
-                            type="file"
-                            accept="video/*"
-                            onChange={handleVideoUpload}
-                            disabled={uploadedVideo.uploading || avatarCreation.isProcessing}
-                            className="hidden"
-                          />
-                          <Button
-                            onClick={() => document.getElementById('video-upload')?.click()}
-                            variant="outline"
-                            className="w-full"
-                            disabled={uploadedVideo.uploading || avatarCreation.isProcessing}
-                          >
-                            {uploadedVideo.uploading ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mr-2" />
-                                Uploading...
-                              </>
-                            ) : avatarCreation.isProcessing ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2" />
-                                Creating Avatar...
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="w-4 h-4 mr-2" />
-                                Choose Video File
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-1">
-                          Supported formats: MP4, WebM. Max size: 500MB. Recommended: 2-minute video with clear face visibility.
-                        </p>
                       </div>
                     </div>
                     
-                    {/* Video Preview */}
-                    {(uploadedVideo.file || uploadedVideo.url) && (
-                      <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                        <div className="flex items-start space-x-4">
-                          {/* Video Preview */}
-                          <div className="flex-shrink-0">
-                            <div className="relative w-32 h-24 bg-black rounded-lg overflow-hidden">
-                              {uploadedVideo.url ? (
-                                <video 
-                                  className="w-full h-full object-cover"
-                                  controls
-                                  preload="metadata"
-                                >
-                                  <source src={uploadedVideo.url} type={uploadedVideo.file?.type || 'video/mp4'} />
-                                  Your browser does not support the video tag.
-                                </video>
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-slate-200">
-                                  <Video className="w-8 h-8 text-slate-400" />
-                                </div>
-                              )}
+              {/* Content Type Selection */}
+              <div className="mb-6">
+                <h4 className="text-base font-semibold text-slate-900 mb-3">Content Type</h4>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { id: 'video', name: 'Video', desc: 'AI avatar + captions', icon: Video },
+                    { id: 'caption', name: 'Caption', desc: 'Text content only', icon: Edit },
+                    { id: 'both', name: 'Both', desc: 'Video + captions', icon: Copy }
+                  ].map((type) => (
+                    <button
+                      key={type.id}
+                      onClick={() => setSelectedContentType(type.id as 'video' | 'caption' | 'both')}
+                      className={`p-3 rounded-lg border-2 transition-all duration-300 hover:scale-105 ${
+                        selectedContentType === type.id
+                          ? 'border-emerald-500 bg-emerald-50'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <type.icon className="w-6 h-6 mx-auto mb-2 text-slate-600" />
+                      <p className="text-xs font-medium text-slate-900">{type.name}</p>
+                      <p className="text-xs text-slate-500 mt-1">{type.desc}</p>
+                    </button>
+                  ))}
                             </div>
                           </div>
                           
-                          {/* Video Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <div className={`w-3 h-3 rounded-full ${
-                                avatarCreation.isProcessing ? 'bg-blue-500' :
-                                uploadedVideo.uploading ? 'bg-yellow-500' : 
-                                uploadedVideo.assetId ? 'bg-green-500' : 'bg-gray-400'
-                              }`}></div>
-                              <span className="text-sm font-medium text-slate-900">
-                                {avatarCreation.isProcessing ? 'Creating Avatar...' :
-                                 uploadedVideo.uploading ? 'Uploading...' :
-                                 uploadedVideo.assetId ? 'Upload Complete' : 'Ready to Upload'}
-                              </span>
+              {/* Selected Summary */}
+              {selectedPlatforms.length > 0 && (
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-3 mb-4 border border-indigo-200">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <Check className="w-4 h-4 text-emerald-600" />
+                    <span className="text-sm font-medium text-slate-900">Ready to Generate</span>
                             </div>
-                            <p className="text-sm text-slate-600 mb-1">
-                              {uploadedVideo.file?.name || 'No file selected'}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              {uploadedVideo.file ? `Size: ${(uploadedVideo.file.size / (1024 * 1024)).toFixed(1)}MB` : ''}
-                              {uploadedVideo.assetId && (
-                                <span className="block">Asset ID: {uploadedVideo.assetId}</span>
-                              )}
-                            </p>
-                          </div>
-                        </div>
+                  <p className="text-xs text-slate-700">
+                    Creating <span className="font-medium">{selectedContentType}</span> content for{' '}
+                    <span className="font-medium">{selectedPlatforms.length}</span> platform{selectedPlatforms.length > 1 ? 's' : ''}:{' '}
+                    {selectedPlatforms.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')}
+                  </p>
                       </div>
                     )}
-
-                    {/* Avatar Creation Status */}
-                    <div className={`rounded-lg p-4 border ${
-                      (customAvatarId && hasUploadedVideo) ? 'bg-green-50 border-green-200' : 
-                      avatarCreation.isProcessing ? 'bg-blue-50 border-blue-200' : 
-                      'bg-blue-50 border-blue-200'
-                    }`}>
-                      <h4 className={`font-medium mb-2 ${
-                        (customAvatarId && hasUploadedVideo) ? 'text-green-900' : 
-                        avatarCreation.isProcessing ? 'text-blue-900' : 
-                        'text-blue-900'
-                      }`}>
-                        {(customAvatarId && hasUploadedVideo) ? '✅ Kevin\'s Custom Avatar is Ready!' : 
-                         avatarCreation.isProcessing ? '🔄 Creating Kevin\'s Avatar...' : 
-                         '📝 Create Kevin\'s AI Avatar'}
-                      </h4>
-                      <div className={`text-sm space-y-1 ${
-                        (customAvatarId && hasUploadedVideo) ? 'text-green-700' : 
-                        avatarCreation.isProcessing ? 'text-blue-700' : 
-                        'text-blue-700'
-                      }`}>
-                        {(customAvatarId && hasUploadedVideo) ? (
-                          <>
-                            <p>✅ Kevin's custom avatar has been created and is ready to use!</p>
-                            <p>✅ It will be automatically selected for video generation</p>
-                            <p>✅ You can now create videos with Kevin's personal AI avatar</p>
-                          </>
-                        ) : avatarCreation.isProcessing ? (
-                          <>
-                            <p>🔄 Your video is being processed to create Kevin's custom avatar</p>
-                            <p>⏱️ Demo mode: ~{avatarCreation.estimatedTime} (accelerated for demo)</p>
-                            <p>🔔 You'll be notified when Kevin's avatar is ready</p>
-                          </>
-                        ) : (
-                          <>
-                            <p>1. Upload a 2-minute video of Kevin speaking clearly</p>
-                            <p>2. Our AI will automatically process the video</p>
-                            <p>3. Kevin's custom avatar will be ready in ~30 seconds</p>
-                            <p>4. Start creating videos with Kevin's personal AI avatar!</p>
-                            <div className="mt-3 p-2 bg-blue-100 border border-blue-300 rounded text-xs">
-                              <p><strong>Demo Mode:</strong> Avatar creation is accelerated for demonstration purposes. The system creates a fully functional Kevin avatar that can be used for video generation.</p>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Avatar Stats */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-indigo-50 rounded-lg p-3 text-center">
-                        <p className="text-lg font-semibold text-indigo-600">{availableAvatars.length}</p>
-                        <p className="text-xs text-indigo-600">Available Avatars</p>
-                      </div>
-                      <div className="bg-emerald-50 rounded-lg p-3 text-center">
-                        <p className="text-lg font-semibold text-emerald-600">
-                          {(customAvatarId && hasUploadedVideo) ? 'Ready' : 
-                           avatarCreation.isProcessing ? 'Processing' : 'Pending'}
-                        </p>
-                        <p className="text-xs text-emerald-600">Kevin's Avatar</p>
-                      </div>
-                    </div>
 
                     {/* Action Buttons */}
                     <div className="flex space-x-3">
                       <Button 
+                  onClick={() => setShowPlatformSelection(false)}
                         variant="outline" 
-                        className="flex-1"
-                        onClick={async () => {
-                          try {
-                            const avatars = await heygenAPI.getAvatars()
-                            setAvailableAvatars(avatars)
-                            
-                            // Check for new custom avatar
-                            const newCustomAvatar = avatars.find((a: any) => 
-                              a.avatar_name.toLowerCase().includes('instant') ||
-                              a.avatar_name.toLowerCase().includes('my') ||
-                              (uploadedVideo.file && a.avatar_name.includes(uploadedVideo.file.name.split('.')[0]))
-                            )
-                            
-                            if (newCustomAvatar && !customAvatarId) {
-                              setCustomAvatarId(newCustomAvatar.avatar_id)
-                              setSelectedAvatarId(newCustomAvatar.avatar_id)
-                              setAvatarCreation(prev => ({
-                                ...prev,
-                                isProcessing: false,
-                                progress: 100,
-                                phase: 'Avatar created successfully!'
-                              }))
-                            }
-                          } catch (error) {
-                            console.error('Error refreshing avatars:', error)
-                          }
-                        }}
-                        disabled={avatarCreation.isProcessing}
-                      >
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Refresh Avatars
+                  className="flex-1 text-sm"
+                >
+                  Back to Edit
                       </Button>
                       <Button 
-                        variant="outline" 
-                        className="flex-1"
-                        onClick={() => {
-                          if (customAvatarId) {
-                            const avatar = availableAvatars.find(a => a.avatar_id === customAvatarId)
-                            if (avatar?.preview_video_url) {
-                              window.open(avatar.preview_video_url, '_blank')
-                            }
-                          } else if (uploadedVideo.url) {
-                            window.open(uploadedVideo.url, '_blank')
-                          } else if (selectedAvatarId) {
-                            const avatar = availableAvatars.find(a => a.avatar_id === selectedAvatarId)
-                            if (avatar?.preview_video_url) {
-                              window.open(avatar.preview_video_url, '_blank')
-                            }
-                          }
-                        }}
-                        disabled={!uploadedVideo.url && !customAvatarId && !selectedAvatarId}
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        Preview Avatar
+                  onClick={handlePlatformSelectionContinue}
+                  disabled={selectedPlatforms.length === 0}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-sm"
+                >
+                  Generate Content
+                  <ArrowLeft className="w-4 h-4 ml-2 transform rotate-180" />
                       </Button>
                 </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
           )}
         </div>
       </div>
-
-      {/* Floating Avatar Creation Status */}
-      {avatarCreation.isProcessing && activeTab !== 'settings' && (
-        <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-2 duration-300">
-          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-3 rounded-lg shadow-lg max-w-sm">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-blue-400 rounded-full flex items-center justify-center flex-shrink-0">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm">Creating Kevin's Avatar (Demo)</p>
-                <p className="text-xs opacity-90 truncate">{avatarCreation.phase}</p>
-                <div className="w-full bg-blue-400 rounded-full h-1 mt-2">
-                  <div 
-                    className="h-1 bg-white rounded-full transition-all duration-500" 
-                    style={{ width: `${avatarCreation.progress}%` }}
-                  ></div>
-                </div>
-              </div>
-              <button
-                onClick={() => setActiveTab('settings')}
-                className="text-white/80 hover:text-white transition-colors"
-              >
-                <Eye className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showToast && (
-        <div className="fixed top-4 right-4 z-[100] animate-in slide-in-from-top-2 duration-300">
-          <div
-            className={`${toastMessage.title.toLowerCase().includes("error") ? "bg-red-600" : "bg-emerald-600"} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3`}
-          >
-            <div
-              className={`w-6 h-6 ${toastMessage.title.toLowerCase().includes("error") ? "bg-red-500" : "bg-emerald-500"} rounded-full flex items-center justify-center`}
-            >
-              {toastMessage.title.toLowerCase().includes("error") ? (
-                <X className="w-4 h-4 text-white" />
-              ) : (
-                <Check className="w-4 h-4 text-white" />
-              )}
-            </div>
-            <div>
-              <p className="font-semibold">{toastMessage.title}</p>
-              <p
-                className={`text-sm ${toastMessage.title.toLowerCase().includes("error") ? "text-red-100" : "text-emerald-100"}`}
-              >
-                {toastMessage.description}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Script Generation Loading Overlay */}
-      {isGeneratingScripts && currentStep === "analysis" && (
-        <div className="fixed inset-0 bg-black/10 backdrop-blur-sm z-40 flex items-center justify-center">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                <div className="relative">
-                  <Sparkles className="w-8 h-8 text-white animate-pulse" />
-                  <div className="absolute inset-0 rounded-full border-2 border-white/50 animate-spin"></div>
-                </div>
-              </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">
-                {personalData ? 'Creating Personalized Scripts' : 'Generating Your Scripts'}
-              </h3>
-              <p className="text-slate-600 mb-6">
-                {personalData 
-                  ? 'Analyzing your social media data to create personalized A-roll and B-roll scripts...'
-                  : 'Creating engaging A-roll and B-roll scripts based on market analysis...'
-                }
-              </p>
-              
-              {/* Enhanced progress bar */}
-              <div className="mb-6">
-                <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden mb-2">
-                  <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-1000 ease-out animate-pulse" style={{ width: '75%' }}></div>
-                </div>
-                <p className="text-sm text-slate-500">Processing your content...</p>
-              </div>
-              
-              <div className="bg-slate-50 rounded-xl p-4">
-                <div className="flex items-center justify-center space-x-3">
-                  <Loader2 className="w-5 h-5 animate-spin text-emerald-500" />
-                  <span className="text-slate-700 font-medium">
-                    {personalData ? 'LangChain AI Personalizing...' : 'AI Script Generation...'}
-                  </span>
-                </div>
-                {personalData && (
-                  <div className="mt-3 flex items-center justify-center space-x-4 text-xs text-slate-500">
-                    {personalData.urls?.youtube && (
-                      <div className="flex items-center space-x-1">
-                        <Video className="w-3 h-3" />
-                        <span>YouTube</span>
-                      </div>
-                    )}
-                    {personalData.urls?.linkedin && (
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-3 h-3" />
-                        <span>LinkedIn</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Video Generation Loading Modal */}
-      {showGenerationModal && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full mx-4 p-8">
-            <div className="text-center">
-              {/* Header */}
-              <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                <Video className="w-10 h-10 text-white" />
-              </div>
-              
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">
-                Generating Your Video
-              </h3>
-              <p className="text-slate-600 mb-8">
-                Creating your AI-powered video with captions
-              </p>
-              
-              {/* Loading Stages */}
-              <div className="space-y-4 mb-8">
-                {generationStages.map((stage, index) => (
-                  <div key={index} className="flex items-center space-x-4">
-                    {/* Stage Icon */}
-                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 ${
-                      stage.completed 
-                        ? 'bg-emerald-500 text-white' 
-                        : stage.active 
-                          ? 'bg-indigo-500 text-white animate-pulse' 
-                          : 'bg-slate-200 text-slate-400'
-                    }`}>
-                      {stage.completed ? (
-                        <Check className="w-4 h-4" />
-                      ) : stage.active ? (
-                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <div className="w-2 h-2 rounded-full bg-current" />
-                      )}
-                    </div>
-                    
-                    {/* Stage Text */}
-                    <div className="flex-1 text-left">
-                      <p className={`text-sm font-medium transition-all duration-300 ${
-                        stage.completed 
-                          ? 'text-emerald-600' 
-                          : stage.active 
-                            ? 'text-indigo-600' 
-                            : 'text-slate-400'
-                      }`}>
-                        {stage.name}
-                      </p>
-                    </div>
-                    
-                    {/* Status Indicator */}
-                    <div className="flex-shrink-0">
-                      {stage.completed && (
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                      )}
-                      {stage.active && (
-                        <div className="flex space-x-1">
-                          <div className="w-1 h-1 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <div className="w-1 h-1 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <div className="w-1 h-1 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              {/* Progress Bar */}
-              <div className="mb-6">
-                <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full transition-all duration-1000 ease-out" 
-                    style={{ width: `${(generationStages.filter(s => s.completed).length / generationStages.length) * 100}%` }}
-                  />
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                  {generationStages.filter(s => s.completed).length} of {generationStages.length} stages complete
-                </p>
-              </div>
-              
-              {/* Footer Message */}
-              <div className="bg-indigo-50 rounded-xl p-4">
-                <p className="text-sm text-indigo-700">
-                  This may take a few moments. Please don't close this window.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
   )
+}
+
+// Helper function to generate platform-specific captions
+const generatePlatformCaption = (platform: string, content: string): string => {
+  const baseContent = content || "Amazing content coming your way!"
+  
+  switch (platform) {
+    case 'instagram':
+      return `${baseContent}\n\n#trending #viral #content #instagram #reels #fyp #explore #like #follow #share`
+    case 'tiktok':
+      return `${baseContent}\n\n#fyp #foryou #viral #trending #tiktok #content #creative #amazing #wow #cool`
+    case 'youtube':
+      return `${baseContent}\n\nDon't forget to LIKE, SUBSCRIBE, and hit the BELL icon for more content like this!\n\n#shorts #youtube #viral #trending #subscribe`
+    case 'twitter':
+      return `${baseContent}\n\n🧵 Thread below 👇\n\n#trending #viral #content #twitter #thread`
+    case 'linkedin':
+      return `${baseContent}\n\nWhat are your thoughts on this? Share your insights in the comments below.\n\n#linkedin #professional #insights #networking #business`
+    case 'facebook':
+      return `${baseContent}\n\nTag someone who needs to see this! 👇\nReact with 👍 if you agree!\n\n#facebook #viral #trending #share #tag`
+    default:
+      return baseContent
+  }
 }
