@@ -44,10 +44,10 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center">
             <button 
-              onClick={() => window.location.href = '/dashboard'}
+              onClick={() => window.location.href = '/analytics'}
               className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg text-base font-medium transition-all duration-300 hover:scale-105"
             >
-              get started
+              view dashboard
             </button>
           </div>
         </div>
@@ -74,11 +74,11 @@ export default function LandingPage() {
                   onClick={async () => {
                     const btn = document.activeElement as HTMLButtonElement;
                     btn.disabled = true;
-                    window.location.href = '/dashboard';
+                    window.location.href = '/analytics';
                   }}
                   className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg text-base font-medium transition-all duration-300 hover:scale-105 flex items-center justify-center disabled:opacity-75"
                 >
-                  start creating <ArrowRight className="ml-2 w-4 h-4" />
+                  view dashboard <ArrowRight className="ml-2 w-4 h-4" />
                 </button>
                 <button 
                   onClick={() => window.open('https://www.youtube.com/watch?v=kPx-YxHjzRY', '_blank')}
@@ -228,10 +228,10 @@ export default function LandingPage() {
             join thousands of creators who've transformed their content strategy with supernova.
           </p>
           <button 
-            onClick={() => window.location.href = '/dashboard'}
+            onClick={() => window.location.href = '/analytics'}
             className="px-8 py-3 bg-white text-indigo-600 hover:bg-gray-50 rounded-lg text-lg font-medium transition-all duration-300 hover:scale-105 inline-flex items-center shadow-lg"
           >
-            start creating <ArrowRight className="ml-2 w-5 h-5" />
+            view dashboard <ArrowRight className="ml-2 w-5 h-5" />
           </button>
         </div>
       </section>

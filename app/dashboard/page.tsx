@@ -2284,9 +2284,9 @@ export default function Dashboard() {
       <div
         className={`${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 ${
+        } lg:translate-x-0 fixed lg:fixed inset-y-0 left-0 z-50 ${
           isSidebarCollapsed ? "w-16" : "w-64"
-        } bg-slate-800 text-white flex flex-col transition-all duration-300 ease-in-out group`}
+        } bg-slate-900 text-white flex flex-col transition-all duration-300 ease-in-out group h-screen`}
         onMouseEnter={() => {
           if (isSidebarCollapsed) {
             // Temporary expand on hover when collapsed
@@ -2363,6 +2363,18 @@ export default function Dashboard() {
             </li>
             <li>
               <button
+                onClick={() => window.location.href = '/analytics'}
+                className={`w-full flex items-center ${
+                  isSidebarCollapsed ? "justify-center px-3" : "space-x-2 px-3"
+                } py-1.5 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 hover:text-white`}
+                title={isSidebarCollapsed ? "Analytics" : ""}
+              >
+                <BarChart3 className="w-4 h-4" />
+                {!isSidebarCollapsed && <span className="text-sm">Analytics</span>}
+              </button>
+            </li>
+            <li>
+              <button
                 onClick={() => handleTabChange("library")}
                 className={`w-full flex items-center ${
                   isSidebarCollapsed ? "justify-center px-3" : "space-x-2 px-3"
@@ -2416,7 +2428,7 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 min-w-0">
+      <div className={`flex-1 min-w-0 ${isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'} transition-all duration-300 h-screen overflow-y-auto`}>
         <div className="lg:hidden bg-white border-b px-4 py-3 flex items-center justify-between">
           <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 hover:bg-gray-100 rounded-lg">
             <Menu className="w-6 h-6" />
@@ -2926,6 +2938,293 @@ export default function Dashboard() {
             </div>
           )}
               </div>
+
+          {activeTab === "library" && (
+            <div className="max-w-6xl mx-auto">
+              {/* Library Header */}
+              <div className="text-center mb-12">
+                <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-purple-50 to-indigo-50 px-4 py-2 rounded-full mb-4">
+                  <Folder className="w-4 h-4 text-purple-600" />
+                  <span className="text-sm font-medium text-slate-700">Content Library</span>
+                </div>
+                <h1 className="text-4xl font-bold text-slate-900 mb-3">
+                  Your Content Library
+                </h1>
+                <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+                  All your AI-generated content in one place
+                </p>
+              </div>
+
+              {/* Content Library Display */}
+              {contentLibrary.length === 0 ? (
+                // Empty State - Minimalistic and Compact
+                <div className="text-center py-16">
+                  <div className="max-w-sm mx-auto">
+                    {/* Main Empty State Icon */}
+                    <div className="w-24 h-24 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center mx-auto mb-6 border-2 border-dashed border-slate-300">
+                      <Folder className="w-10 h-10 text-slate-400" />
+                    </div>
+
+                    {/* Witty Message */}
+                    <div className="space-y-3 mb-8">
+                      <h3 className="text-xl font-bold text-slate-800">
+                        Nothing here but potential! 📚
+                      </h3>
+                      <p className="text-slate-600">
+                        Your content library is lonelier than a ChatGPT server during an outage.
+                      </p>
+                    </div>
+
+                    {/* Call to Action */}
+                    <Button
+                      onClick={() => handleTabChange("create")}
+                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg transition-all duration-300 hover:scale-105"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Your First Content
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                // Library Content Display (when content exists)
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <p className="text-slate-600">
+                      {contentLibrary.length} item{contentLibrary.length !== 1 ? 's' : ''} in your library
+                    </p>
+                    <Button
+                      onClick={() => handleTabChange("create")}
+                      variant="outline"
+                      className="flex items-center"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create New
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {contentLibrary.map((item) => (
+                      <Card key={item.id} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer">
+                        <div className="aspect-video bg-gradient-to-br from-slate-100 to-slate-200 rounded-t-lg flex items-center justify-center overflow-hidden">
+                          {item.thumbnail ? (
+                            <img 
+                              src={item.thumbnail} 
+                              alt={item.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="text-center">
+                              <Video className="w-12 h-12 text-slate-400 mx-auto mb-2" />
+                              <p className="text-xs text-slate-500">No preview available</p>
+                            </div>
+                          )}
+                        </div>
+                        <CardContent className="p-4">
+                          <h3 className="font-semibold text-slate-900 mb-2 line-clamp-2">{item.title}</h3>
+                          <div className="flex items-center justify-between text-xs text-slate-500">
+                            <span>{item.type}</span>
+                            <span>{item.createdAt}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "settings" && (
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-12">
+                <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-slate-50 to-gray-50 px-4 py-2 rounded-full mb-4">
+                  <Settings className="w-4 h-4 text-slate-600" />
+                  <span className="text-sm font-medium text-slate-700">Settings</span>
+                </div>
+                <h1 className="text-4xl font-bold text-slate-900 mb-3">
+                  Settings
+                </h1>
+                <p className="text-xl text-slate-600">
+                  Configure your content creation preferences
+                </p>
+              </div>
+
+              {/* Settings Content */}
+              <div className="space-y-8">
+                {/* HeyGen API Configuration */}
+                <Card className="border-0 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-slate-900">
+                      <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center mr-3">
+                        <Sparkles className="w-4 h-4 text-white" />
+                      </div>
+                      HeyGen AI Configuration
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* API Status */}
+                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-3 h-3 rounded-full ${
+                          apiStatus.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'
+                        }`}></div>
+                        <div>
+                          <p className="font-medium text-slate-900">
+                            API Status: {apiStatus.connected ? 'Connected' : 'Disconnected'}
+                          </p>
+                          {apiStatus.error && (
+                            <p className="text-sm text-red-600">{apiStatus.error}</p>
+                          )}
+                        </div>
+                      </div>
+                      {apiStatus.testing && (
+                        <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+                      )}
+                    </div>
+
+                    {/* Avatar Management */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-slate-900">Your Avatar</h3>
+                      
+                      {/* Upload Video for Avatar Creation */}
+                      <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-indigo-400 transition-colors">
+                        <input
+                          type="file"
+                          id="avatar-video-upload"
+                          accept="video/*"
+                          onChange={handleVideoUpload}
+                          className="hidden"
+                        />
+                        <label htmlFor="avatar-video-upload" className="cursor-pointer">
+                          <div className="space-y-4">
+                            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mx-auto">
+                              {uploadedVideo.uploading ? (
+                                <Loader2 className="w-8 h-8 text-white animate-spin" />
+                              ) : (
+                                <Upload className="w-8 h-8 text-white" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-lg font-medium text-slate-900">
+                                {uploadedVideo.uploading 
+                                  ? 'Uploading video...' 
+                                  : uploadedVideo.file 
+                                    ? `Uploaded: ${uploadedVideo.file.name}` 
+                                    : 'Upload Avatar Video'
+                                }
+                              </p>
+                              <p className="text-sm text-slate-500 mt-1">
+                                {uploadedVideo.uploading 
+                                  ? 'Please wait while we process your video'
+                                  : 'Upload a clear video of yourself (2-5 minutes, good lighting)'
+                                }
+                              </p>
+                            </div>
+                          </div>
+                        </label>
+                      </div>
+
+                      {/* Avatar Creation Status */}
+                      {avatarCreation.isProcessing && (
+                        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
+                          <div className="flex items-center space-x-3 mb-4">
+                            <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
+                              <Loader2 className="w-4 h-4 text-white animate-spin" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-indigo-900">Creating Your Avatar</p>
+                              <p className="text-sm text-indigo-700">{avatarCreation.phase}</p>
+                            </div>
+                          </div>
+                          <div className="w-full bg-indigo-200 rounded-full h-2 mb-2">
+                            <div 
+                              className="bg-indigo-600 h-2 rounded-full transition-all duration-500" 
+                              style={{ width: `${avatarCreation.progress}%` }}
+                            ></div>
+                          </div>
+                          <div className="flex justify-between text-sm text-indigo-700">
+                            <span>{avatarCreation.progress}% complete</span>
+                            <span>Est. {avatarCreation.estimatedTime}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Available Avatars */}
+                      {availableAvatars.length > 0 && (
+                        <div className="space-y-3">
+                          <p className="font-medium text-slate-900">Available Avatars:</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {availableAvatars.slice(0, 4).map((avatar: any) => (
+                              <div 
+                                key={avatar.avatar_id} 
+                                className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                  selectedAvatarId === avatar.avatar_id 
+                                    ? 'border-indigo-500 bg-indigo-50' 
+                                    : 'border-slate-200 hover:border-slate-300'
+                                }`}
+                                onClick={() => setSelectedAvatarId(avatar.avatar_id)}
+                              >
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-10 h-10 bg-gradient-to-br from-slate-200 to-slate-300 rounded-lg flex items-center justify-center">
+                                    <User className="w-5 h-5 text-slate-600" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-slate-900 truncate">
+                                      {avatar.avatar_name || `Avatar ${avatar.avatar_id.slice(-4)}`}
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                      {avatar.avatar_id === customAvatarId ? 'Your Custom Avatar' : 'HeyGen Avatar'}
+                                    </p>
+                                  </div>
+                                  {selectedAvatarId === avatar.avatar_id && (
+                                    <Check className="w-4 h-4 text-indigo-600" />
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Voice Selection */}
+                    {availableVoices.length > 0 && (
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-slate-900">Voice Selection</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto">
+                          {availableVoices.slice(0, 8).map((voice: any) => (
+                            <div 
+                              key={voice.voice_id} 
+                              className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                selectedVoiceId === voice.voice_id 
+                                  ? 'border-emerald-500 bg-emerald-50' 
+                                  : 'border-slate-200 hover:border-slate-300'
+                              }`}
+                              onClick={() => setSelectedVoiceId(voice.voice_id)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="font-medium text-slate-900">
+                                    {voice.name || `Voice ${voice.voice_id.slice(-4)}`}
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    {voice.language || 'Unknown'} • {voice.gender || 'Unknown'}
+                                  </p>
+                                </div>
+                                {selectedVoiceId === voice.voice_id && (
+                                  <Check className="w-4 h-4 text-emerald-600" />
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
 
         {/* Platform Selection Modal */}
         {showPlatformSelection && (
