@@ -46,6 +46,7 @@ import {
   Paperclip,
   Image,
   FileVideo,
+  Archive,
 } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { 
@@ -2347,6 +2348,18 @@ export default function Dashboard() {
           <ul className="space-y-1">
             <li>
               <button
+                onClick={() => window.location.href = '/analytics'}
+                className={`w-full flex items-center ${
+                  isSidebarCollapsed ? "justify-center px-3" : "space-x-2 px-3"
+                } py-1.5 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 hover:text-white`}
+                title={isSidebarCollapsed ? "Dashboard" : ""}
+              >
+                <BarChart3 className="w-4 h-4" />
+                {!isSidebarCollapsed && <span className="text-sm">Dashboard</span>}
+              </button>
+            </li>
+            <li>
+              <button
                 onClick={() => handleTabChange("create")}
                 className={`w-full flex items-center ${
                   isSidebarCollapsed ? "justify-center px-3" : "space-x-2 px-3"
@@ -2357,20 +2370,8 @@ export default function Dashboard() {
                 }`}
                 title={isSidebarCollapsed ? "Create" : ""}
               >
-                <Plus className="w-4 h-4" />
+                <Sparkles className="w-4 h-4" />
                 {!isSidebarCollapsed && <span className="text-sm">Create</span>}
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => window.location.href = '/analytics'}
-                className={`w-full flex items-center ${
-                  isSidebarCollapsed ? "justify-center px-3" : "space-x-2 px-3"
-                } py-1.5 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 hover:text-white`}
-                title={isSidebarCollapsed ? "Analytics" : ""}
-              >
-                <BarChart3 className="w-4 h-4" />
-                {!isSidebarCollapsed && <span className="text-sm">Analytics</span>}
               </button>
             </li>
             <li>
@@ -2385,7 +2386,7 @@ export default function Dashboard() {
                 }`}
                 title={isSidebarCollapsed ? "Library" : ""}
               >
-                <Folder className="w-4 h-4" />
+                <Archive className="w-4 h-4" />
                 {!isSidebarCollapsed && <span className="text-sm">Library</span>}
               </button>
             </li>
@@ -2511,7 +2512,9 @@ export default function Dashboard() {
           {activeTab === "create" && (
             <div className="max-w-6xl mx-auto relative">
               {/* Add Socials Button - Top Left of Create Page */}
-              <div className="absolute -top-40 -left-8 z-20">
+              <div className={`absolute -top-40 z-20 transition-all duration-300 ${
+                isSidebarCollapsed ? '-left-32' : '-left-8'
+              }`}>
                         <Dialog open={showSocialsModal} onOpenChange={setShowSocialsModal}>
                           <DialogTrigger asChild>
                             <Button

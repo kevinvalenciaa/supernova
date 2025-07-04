@@ -38,6 +38,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Sparkles,
+  Archive,
 } from "lucide-react"
 import {
   BarChart,
@@ -262,25 +263,25 @@ export default function AnalyticsDashboard() {
           <ul className="space-y-1">
             <li>
               <button
+                className={`w-full flex items-center ${
+                  isSidebarCollapsed ? "justify-center px-3" : "space-x-2 px-3"
+                } py-1.5 rounded-lg transition-colors bg-indigo-600 text-white`}
+                title={isSidebarCollapsed ? "Dashboard" : ""}
+              >
+                <BarChart3 className="w-4 h-4" />
+                {!isSidebarCollapsed && <span className="text-sm">Dashboard</span>}
+              </button>
+            </li>
+            <li>
+              <button
                 onClick={() => window.location.href = '/dashboard'}
                 className={`w-full flex items-center ${
                   isSidebarCollapsed ? "justify-center px-3" : "space-x-2 px-3"
                 } py-1.5 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 hover:text-white`}
                 title={isSidebarCollapsed ? "Create" : ""}
               >
-                <Plus className="w-4 h-4" />
+                <Sparkles className="w-4 h-4" />
                 {!isSidebarCollapsed && <span className="text-sm">Create</span>}
-              </button>
-            </li>
-            <li>
-              <button
-                className={`w-full flex items-center ${
-                  isSidebarCollapsed ? "justify-center px-3" : "space-x-2 px-3"
-                } py-1.5 rounded-lg transition-colors bg-indigo-600 text-white`}
-                title={isSidebarCollapsed ? "Analytics" : ""}
-              >
-                <BarChart3 className="w-4 h-4" />
-                {!isSidebarCollapsed && <span className="text-sm">Analytics</span>}
               </button>
             </li>
             <li>
@@ -291,7 +292,7 @@ export default function AnalyticsDashboard() {
                 } py-1.5 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 hover:text-white`}
                 title={isSidebarCollapsed ? "Library" : ""}
               >
-                <Folder className="w-4 h-4" />
+                <Archive className="w-4 h-4" />
                 {!isSidebarCollapsed && <span className="text-sm">Library</span>}
               </button>
             </li>
