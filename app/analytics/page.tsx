@@ -39,6 +39,7 @@ import {
   PanelLeftOpen,
   Sparkles,
   Archive,
+  LayoutGrid,
 } from "lucide-react"
 import {
   BarChart,
@@ -268,9 +269,13 @@ export default function AnalyticsDashboard() {
                 } py-1.5 rounded-lg transition-colors bg-indigo-600 text-white`}
                 title={isSidebarCollapsed ? "Dashboard" : ""}
               >
-                <BarChart3 className="w-4 h-4" />
+                <LayoutGrid className="w-4 h-4" />
                 {!isSidebarCollapsed && <span className="text-sm">Dashboard</span>}
               </button>
+            </li>
+            {/* Light separator under Dashboard */}
+            <li className="px-3 py-1">
+              <div className="w-full h-px bg-slate-600/30"></div>
             </li>
             <li>
               <button
