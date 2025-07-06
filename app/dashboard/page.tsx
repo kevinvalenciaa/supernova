@@ -2635,7 +2635,7 @@ export default function Dashboard() {
                       in seconds.
                     </h1>
                     <p className="text-base lg:text-lg text-slate-600 mb-6 max-w-2xl mx-auto leading-relaxed font-light">
-                      Transform any idea into engaging video content using HeyGen AI digital twin.
+                      Turn any idea into high-performing content across any platform with AI-powered strategy insights.
                     </p>
                               </div>
                   <div className="max-w-2xl mx-auto mb-16 relative">
@@ -2731,294 +2731,205 @@ export default function Dashboard() {
               {currentStep === "analysis" && renderDynamicAnalysis()}
 
               {currentStep === "storyboard" && (
-                <div className="space-y-8">
-                  {/* Enhanced Header Section */}
-                  <div className="text-center mb-16 relative">
+                <div className="h-full">
+                  {/* Minimal Header */}
+                  <div className="flex items-center justify-between mb-6">
                     <Button
                       variant="outline"
                       onClick={() => handleStepChange("analysis")}
-                      className="absolute top-0 left-0 flex items-center bg-white/90 backdrop-blur-sm text-slate-700 border-slate-200 hover:bg-slate-50 shadow-md transition-all duration-300 hover:scale-105"
+                      className="flex items-center text-slate-600 border-slate-300 hover:bg-slate-50"
                     >
                       <ArrowLeft className="w-4 h-4 mr-2" />
-                      Back to Analysis
+                      Back
                     </Button>
                     
-                    {/* Status Badge */}
-                    <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-3 rounded-full mb-6 border border-emerald-200 shadow-sm">
-                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                      <span className="text-sm font-semibold text-emerald-800">Content Ready</span>
-                    </div>
-                    
-                    {/* Main Title */}
-                    <h1 className="text-5xl font-bold text-slate-900 mb-6 leading-tight">
-                      Storyboard
-                    </h1>
-                    
-                    {/* Subtitle with Platform Pills */}
-                    <div className="max-w-4xl mx-auto">
-                      <p className="text-xl text-slate-600 mb-6 leading-relaxed">
-                        Review and customize your {selectedContentType === 'caption' ? 'caption content' : selectedContentType === 'video' ? 'video scripts' : 'content'} for
-                      </p>
-                      <div className="flex flex-wrap justify-center gap-3 mb-8">
-                        {selectedPlatforms.map((platform) => (
-                          <div
-                            key={platform}
-                            className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium shadow-sm transition-all duration-300 hover:scale-105 ${
-                              platform === 'instagram' ? 'bg-gradient-to-r from-pink-500 to-orange-500 text-white' :
-                              platform === 'tiktok' ? 'bg-gradient-to-r from-gray-900 to-black text-white' :
-                              platform === 'youtube' ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' :
-                              platform === 'twitter' ? 'bg-gradient-to-r from-slate-800 to-slate-900 text-white' :
-                              platform === 'linkedin' ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white' :
-                              'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                            }`}
-                          >
-                            <div className="w-4 h-4 mr-2 bg-white/20 rounded-full"></div>
-                            {platform.charAt(0).toUpperCase() + platform.slice(1)}
-                          </div>
-                        ))}
+                    <div className="text-center flex-1">
+                      <div className="inline-flex items-center space-x-2 bg-emerald-50 px-3 py-1 rounded-md mb-2 border border-emerald-200">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                        <span className="text-sm text-emerald-700 font-medium">Ready</span>
                       </div>
+                      <h1 className="text-2xl font-semibold text-slate-900">Storyboard</h1>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      {selectedPlatforms.map((platform) => (
+                        <div
+                          key={platform}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:scale-105 ${
+                            platform === 'instagram' ? 'bg-gradient-to-br from-pink-50 to-orange-50 border border-pink-200' :
+                            platform === 'tiktok' ? 'bg-gradient-to-br from-gray-50 to-slate-50 border border-gray-200' :
+                            platform === 'youtube' ? 'bg-gradient-to-br from-red-50 to-red-50 border border-red-200' :
+                            platform === 'twitter' ? 'bg-gradient-to-br from-slate-50 to-gray-50 border border-slate-200' :
+                            platform === 'linkedin' ? 'bg-gradient-to-br from-blue-50 to-blue-50 border border-blue-200' :
+                            'bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200'
+                          }`}
+                          title={platform.charAt(0).toUpperCase() + platform.slice(1)}
+                        >
+                          <div className={`w-3 h-3 rounded ${
+                            platform === 'instagram' ? 'bg-gradient-to-br from-pink-400 to-orange-400' :
+                            platform === 'tiktok' ? 'bg-gradient-to-br from-gray-700 to-black' :
+                            platform === 'youtube' ? 'bg-red-500' :
+                            platform === 'twitter' ? 'bg-slate-700' :
+                            platform === 'linkedin' ? 'bg-blue-600' :
+                            'bg-indigo-500'
+                          }`}></div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Main Content Grid */}
-                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-12">
-                    {/* A-Roll Script / Main Content */}
+                  {/* Bento Grid Layout */}
+                  <div className="grid grid-cols-12 gap-4 h-[calc(100vh-200px)] min-h-[600px]">
+                    
+                    {/* A-Roll Script - Takes left 2/3 if video content */}
                     {(selectedContentType === 'video' || selectedContentType === 'both') && (
-                      <div className="xl:col-span-2">
-                        <Card className="border-0 shadow-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden">
-                          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
-                            <CardTitle className="flex items-center text-white text-xl font-bold">
-                              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mr-3">
-                                <Video className="w-5 h-5 text-white" />
-                              </div>
-                              A-Roll Script (Presenter)
-                            </CardTitle>
-                            <p className="text-blue-100 mt-2 text-sm">The main content that will be spoken by your avatar</p>
+                      <Card className="col-span-8 flex flex-col border border-blue-200 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 hover:shadow-md transition-all duration-200">
+                        <CardHeader className="pb-3 border-b border-blue-100 bg-blue-50/50">
+                          <CardTitle className="flex items-center text-slate-900 text-lg font-medium">
+                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                              <Video className="w-4 h-4 text-blue-600" />
+                            </div>
+                            A-Roll Script
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex-1 p-4">
+                          <Textarea
+                            value={aRollScript}
+                            onChange={(e) => setARollScript(e.target.value)}
+                            className="w-full h-full resize-none border-blue-200 text-sm font-mono leading-relaxed bg-white/60 focus:bg-white focus:border-blue-300 transition-all"
+                            placeholder="Your A-roll script will appear here..."
+                          />
+                        </CardContent>
+                        <div className="p-4 border-t border-blue-100 bg-blue-25 flex justify-between items-center">
+                          <Button
+                            variant="outline"
+                            onClick={handleRegenerateScripts}
+                            disabled={isGeneratingScripts}
+                            size="sm"
+                            className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                          >
+                            {isGeneratingScripts ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4 mr-2" />
+                            )}
+                            Regenerate
+                          </Button>
+                          <div className="text-xs text-blue-600/70 font-medium">
+                            {aRollScript.length} characters
                           </div>
-                          <CardContent className="p-6">
-                            <div className="relative">
-                              <Textarea
-                                value={aRollScript}
-                                onChange={(e) => setARollScript(e.target.value)}
-                                className="min-h-[500px] text-sm font-mono leading-relaxed border-2 border-slate-200 rounded-xl bg-white/50 backdrop-blur-sm focus:border-blue-400 focus:bg-white transition-all duration-300 resize-none"
-                                placeholder="Your A-roll script will appear here after generation..."
-                              />
-                              <div className="absolute bottom-4 right-4 text-xs text-slate-400">
-                                {aRollScript.length} characters
-                              </div>
-                            </div>
-                            <div className="mt-6 flex justify-between items-center">
-                              <Button
-                                variant="outline"
-                                onClick={handleRegenerateScripts}
-                                disabled={isGeneratingScripts}
-                                className="text-blue-600 border-blue-300 hover:bg-blue-50 transition-all duration-300 hover:scale-105"
-                              >
-                                {isGeneratingScripts ? (
-                                  <>
-                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                    Regenerating...
-                                  </>
-                                ) : (
-                                  <>
-                                    <RefreshCw className="w-4 h-4 mr-2" />
-                                    Regenerate Script
-                                  </>
-                                )}
-                              </Button>
-                              <div className="flex items-center space-x-2">
-                                <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-700">
-                                  <Copy className="w-4 h-4 mr-2" />
-                                  Copy
-                                </Button>
-                                <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-700">
-                                  <Download className="w-4 h-4 mr-2" />
-                                  Export
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
+                        </div>
+                      </Card>
                     )}
 
-                    {/* Platform-Specific Captions */}
-                    <div className={selectedContentType === 'caption' ? 'xl:col-span-3' : 'xl:col-span-1'}>
-                      <Card className="border-0 shadow-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden h-full">
-                        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6">
-                          <CardTitle className="flex items-center text-white text-xl font-bold">
-                            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mr-3">
-                              <Edit className="w-5 h-5 text-white" />
-                            </div>
-                            Platform Captions
-                          </CardTitle>
-                          <p className="text-emerald-100 mt-2 text-sm">Optimized captions for each platform</p>
-                        </div>
-                        <CardContent className="p-6">
-                          <div className="space-y-6">
-                            {selectedPlatforms.map((platform) => (
-                              <div key={platform} className="group">
-                                <div className="bg-gradient-to-r from-slate-50 to-white border-2 border-slate-200 rounded-xl p-6 hover:border-slate-300 transition-all duration-300 hover:shadow-lg">
-                                  <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center space-x-3">
-                                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm ${
-                                        platform === 'instagram' ? 'bg-gradient-to-br from-pink-500 to-orange-500' :
-                                        platform === 'tiktok' ? 'bg-gradient-to-br from-gray-900 to-black' :
-                                        platform === 'youtube' ? 'bg-gradient-to-br from-red-500 to-red-600' :
-                                        platform === 'twitter' ? 'bg-gradient-to-br from-slate-800 to-slate-900' :
-                                        platform === 'linkedin' ? 'bg-gradient-to-br from-blue-600 to-blue-700' :
-                                        'bg-gradient-to-br from-blue-500 to-blue-600'
-                                      }`}>
-                                        <div className="w-4 h-4 bg-white rounded opacity-90"></div>
-                                      </div>
-                                      <div>
-                                        <h3 className="font-semibold text-slate-900 capitalize">{platform}</h3>
-                                        <p className="text-xs text-slate-500">
-                                          {(['instagram', 'tiktok', 'youtube', 'facebook'].includes(platform) && selectedContentType !== 'caption') ? 'Video + Caption' : 'Caption Only'}
-                                        </p>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                      {(['instagram', 'tiktok', 'youtube', 'facebook'].includes(platform) && selectedContentType !== 'caption') && (
-                                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
-                                          <Video className="w-3 h-3 mr-1" />
-                                          Video
-                                        </Badge>
-                                      )}
-                                      <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200">
-                                        <Edit className="w-3 h-3 mr-1" />
-                                        Caption
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                  <Textarea
-                                    defaultValue={generatePlatformCaption(platform, aRollScript || contentInput)}
-                                    className="min-h-[150px] text-sm resize-none border-slate-200 rounded-lg bg-white/70 backdrop-blur-sm focus:border-slate-400 focus:bg-white transition-all duration-300"
-                                    placeholder={`Optimized caption for ${platform}...`}
-                                  />
-                                  <div className="mt-3 flex justify-between items-center">
-                                    <div className="text-xs text-slate-500">
-                                      {generatePlatformCaption(platform, aRollScript || contentInput).length} characters
-                                    </div>
-                                    <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-700">
-                                      <Copy className="w-3 h-3 mr-1" />
-                                      Copy
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
+                    {/* Platform Captions - Takes right 1/3 or full width if caption only */}
+                    <Card className={`${selectedContentType === 'caption' ? 'col-span-12' : 'col-span-4'} flex flex-col border border-emerald-200 bg-gradient-to-br from-emerald-50/50 to-teal-50/30 hover:shadow-md transition-all duration-200`}>
+                      <CardHeader className="pb-3 border-b border-emerald-100 bg-emerald-50/50">
+                        <CardTitle className="flex items-center text-slate-900 text-lg font-medium">
+                          <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center mr-3">
+                            <Edit className="w-4 h-4 text-emerald-600" />
                           </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-
-                  {/* B-Roll Script (only for video content) */}
-                  {(selectedContentType === 'video' || selectedContentType === 'both') && (
-                    <Card className="border-0 shadow-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden">
-                      <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6">
-                        <CardTitle className="flex items-center text-white text-xl font-bold">
-                          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mr-3">
-                            <Camera className="w-5 h-5 text-white" />
-                          </div>
-                          B-Roll Script (Visual Overlay)
+                          Platform Captions
                         </CardTitle>
-                        <p className="text-purple-100 mt-2 text-sm">Visual sequences that will be overlaid during video production</p>
-                      </div>
-                      <CardContent className="p-6">
-                        <div className="relative">
+                      </CardHeader>
+                      <CardContent className="flex-1 p-4 overflow-y-auto">
+                        <div className="space-y-4">
+                          {selectedPlatforms.map((platform) => (
+                            <div key={platform} className="border border-emerald-100 rounded-lg p-3 bg-white/60 hover:bg-white/80 transition-colors">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center space-x-2">
+                                  <div className={`w-4 h-4 rounded ${
+                                    platform === 'instagram' ? 'bg-gradient-to-br from-pink-400 to-orange-400' :
+                                    platform === 'tiktok' ? 'bg-gradient-to-br from-gray-700 to-black' :
+                                    platform === 'youtube' ? 'bg-red-500' :
+                                    platform === 'twitter' ? 'bg-slate-700' :
+                                    platform === 'linkedin' ? 'bg-blue-600' :
+                                    'bg-indigo-500'
+                                  }`}></div>
+                                  <span className="text-sm font-medium text-slate-700 capitalize">
+                                    {platform}
+                                  </span>
+                                </div>
+                                <span className="text-xs text-emerald-600/70 font-medium">
+                                  {(['instagram', 'tiktok', 'youtube', 'facebook'].includes(platform) && selectedContentType !== 'caption') ? 'Video + Caption' : 'Caption Only'}
+                                </span>
+                              </div>
+                              <Textarea
+                                defaultValue={generatePlatformCaption(platform, aRollScript || contentInput)}
+                                className="w-full h-24 resize-none border-emerald-200 text-sm bg-white/80 focus:bg-white focus:border-emerald-300 transition-all"
+                                placeholder={`Caption for ${platform}...`}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* B-Roll Script - Takes full width row if video content */}
+                    {(selectedContentType === 'video' || selectedContentType === 'both') && (
+                      <Card className="col-span-12 flex flex-col border border-purple-200 bg-gradient-to-br from-purple-50/50 to-pink-50/30 max-h-80 hover:shadow-md transition-all duration-200">
+                        <CardHeader className="pb-3 border-b border-purple-100 bg-purple-50/50">
+                          <CardTitle className="flex items-center text-slate-900 text-lg font-medium">
+                            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                              <Camera className="w-4 h-4 text-purple-600" />
+                            </div>
+                            B-Roll Script
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex-1 p-4">
                           <Textarea
                             value={bRollScript}
                             onChange={(e) => setBRollScript(e.target.value)}
-                            className="min-h-[300px] text-sm font-mono leading-relaxed border-2 border-slate-200 rounded-xl bg-white/50 backdrop-blur-sm focus:border-purple-400 focus:bg-white transition-all duration-300 resize-none"
-                            placeholder="Your B-roll script will appear here after generation..."
+                            className="w-full h-full resize-none border-purple-200 text-sm font-mono leading-relaxed bg-white/60 focus:bg-white focus:border-purple-300 transition-all"
+                            placeholder="Your B-roll script will appear here..."
                           />
-                          <div className="absolute bottom-4 right-4 text-xs text-slate-400">
-                            {bRollScript.length} characters
-                          </div>
-                        </div>
-                        <div className="mt-6 flex justify-between items-center">
-                          <div className="flex items-center space-x-4">
+                        </CardContent>
+                        <div className="p-4 border-t border-purple-100 bg-purple-25 flex justify-between items-center">
+                          <div className="flex items-center space-x-3">
                             <Button
                               variant="outline"
                               onClick={() => loadBrollFootage(bRollScript)}
                               disabled={loadingBroll || !bRollScript}
-                              className="text-purple-600 border-purple-300 hover:bg-purple-50 transition-all duration-300 hover:scale-105"
+                              size="sm"
+                              className="text-purple-600 border-purple-300 hover:bg-purple-50"
                             >
                               {loadingBroll ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                  Loading Footage...
-                                </>
+                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
                               ) : (
-                                <>
-                                  <Video className="w-4 h-4 mr-2" />
-                                  Preview B-Roll
-                                </>
+                                <Video className="w-4 h-4 mr-2" />
                               )}
+                              Preview
                             </Button>
                             {brollFootage.length > 0 && (
-                              <div className="flex items-center space-x-2">
-                                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
-                                  <Check className="w-3 h-3 mr-1" />
-                                  {brollFootage.length} clips ready
-                                </Badge>
-                                <div className="flex -space-x-2">
-                                  {brollFootage.slice(0, 3).map((clip, index) => (
-                                    <div key={index} className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 border-2 border-white flex items-center justify-center">
-                                      <Video className="w-3 h-3 text-white" />
-                                    </div>
-                                  ))}
-                                  {brollFootage.length > 3 && (
-                                    <div className="w-8 h-8 rounded-full bg-slate-300 border-2 border-white flex items-center justify-center text-xs font-medium text-slate-600">
-                                      +{brollFootage.length - 3}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
+                              <span className="text-sm text-purple-600 font-medium bg-purple-100 px-2 py-1 rounded-md">
+                                {brollFootage.length} clips ready
+                              </span>
                             )}
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-700">
-                              <Copy className="w-4 h-4 mr-2" />
-                              Copy
-                            </Button>
-                            <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-700">
-                              <Download className="w-4 h-4 mr-2" />
-                              Export
-                            </Button>
+                          <div className="text-xs text-purple-600/70 font-medium">
+                            {bRollScript.length} characters
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                      </Card>
+                    )}
 
-                  {/* Enhanced Action Buttons */}
-                  <div className="flex justify-center items-center pt-12">
-                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-2xl border border-white/20">
-                      <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
+                    {/* Action Buttons - Fixed at bottom */}
+                    <div className="col-span-12 flex justify-center items-center pt-4">
+                      <div className="flex items-center space-x-4">
                         {(selectedContentType === 'video' || selectedContentType === 'both') && (
                           <Button
                             onClick={handleGenerateVideo}
                             disabled={isGenerating || !selectedAvatarId || !selectedVoiceId || !aRollScript}
-                            className={`bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg transition-all duration-300 ${
-                              isGenerating ? 'cursor-not-allowed opacity-90' : 'hover:scale-105 hover:shadow-xl'
-                            }`}
+                            className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 h-10 shadow-md hover:shadow-lg transition-all"
                           >
                             {isGenerating ? (
                               <>
-                                <div className="relative mr-3">
-                                  <Loader2 className="w-5 h-5 animate-spin" />
-                                  <div className="absolute inset-0 rounded-full border-2 border-white/30 animate-pulse"></div>
-                                </div>
-                                <span className="animate-pulse">Generating Video...</span>
+                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                Generating...
                               </>
                             ) : (
                               <>
-                                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mr-3">
-                                  <Play className="w-5 h-5 text-white" />
-                                </div>
+                                <Play className="w-4 h-4 mr-2" />
                                 Generate Video
                               </>
                             )}
@@ -3028,11 +2939,9 @@ export default function Dashboard() {
                         {selectedContentType === 'caption' && (
                           <Button
                             onClick={handleAddToLibrary}
-                            className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl"
+                            className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 h-10 shadow-md hover:shadow-lg transition-all"
                           >
-                            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mr-3">
-                              <Save className="w-5 h-5 text-white" />
-                            </div>
+                            <Save className="w-4 h-4 mr-2" />
                             Save to Library
                           </Button>
                         )}
@@ -3041,27 +2950,12 @@ export default function Dashboard() {
                           <Button
                             onClick={handleAddToLibrary}
                             variant="outline"
-                            className="border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 px-6 py-4 rounded-xl font-semibold transition-all duration-300 hover:scale-105"
+                            className="border-slate-300 text-slate-700 hover:bg-slate-50 px-6 py-2 h-10 shadow-sm hover:shadow-md transition-all"
                           >
                             <Save className="w-4 h-4 mr-2" />
-                            Save Captions Only
+                            Save Captions
                           </Button>
                         )}
-                      </div>
-                      
-                      {/* Additional Info */}
-                      <div className="mt-4 text-center">
-                        <p className="text-sm text-slate-500">
-                          {(selectedContentType === 'video' || selectedContentType === 'both') && !isGenerating && (
-                            <>Ready to generate your AI avatar video • Estimated time: 2-3 minutes</>
-                          )}
-                          {selectedContentType === 'caption' && (
-                            <>Your captions are ready to be saved to your library</>
-                          )}
-                          {isGenerating && (
-                            <>Please wait while we generate your video with HeyGen AI</>
-                          )}
-                        </p>
                       </div>
                     </div>
                   </div>
